@@ -1,0 +1,76 @@
+# Builds the iPhone app on GitHub's Macs, so no Mac of your own is needed.
+#
+# It builds two versions:
+#   RugbyCam-Lite  everything except live streaming (no outside library)
+#   RugbyCam       the full app, with the HaishinKit streaming library
+# If Lite builds and RugbyCam does not, the problem is in the streaming part.
+#
+# The result is an unsigned .ipa file under "Artifacts" on the run's page.
+# Install it on the iPhone with AltStore or Sideloadly (see README.md).
+
+name: Build iPhone app
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: ${{ matrix.project }}
+    # If GitHub reports that this label does not exist, change it to macos-latest.
+    runs-on: macos-26
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [RugbyCam-Lite, RugbyCam]
+
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v4
+
+      - name: Show the Xcode version
+        run: xcodebuild -version
+
+      - name: Check the project files
+        run: python3 tools/check_project.py
+
+      - name: Build (unsigned)
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project "${{ matrix.project }}.xcodeproj" \
+            -scheme "${{ matrix.project }}" \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build 2>&1 | tee build.log
+
+      - name: Show only the errors
+        if: failure()
+        run: |
+          echo "----- errors -----"
+          grep -n -E "error:|BUILD FAILED" build.log | head -150 || true
+
+      - name: Package the app as an .ipa
+        run: |
+          mkdir -p Payload
+          cp -R "build/Build/Products/Release-iphoneos/RugbyCam.app" Payload/
+          zip -qry "${{ matrix.project }}.ipa" Payload
+
+      - name: Keep the .ipa
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.project }}-ipa
+          path: ${{ matrix.project }}.ipa
+
+      - name: Keep the build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.project }}-build-log
+          path: build.log

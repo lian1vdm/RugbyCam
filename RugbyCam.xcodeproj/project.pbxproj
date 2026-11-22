@@ -1,0 +1,399 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		2C0215D3C6CE9C49BF71B9C2 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91C42A42FB2A1709AC5B955E /* AppModel.swift */; };
+		EFD1098E488E4F62E5EC09E8 /* RugbyCamApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FEF2228AEC2B84D2D77B15D /* RugbyCamApp.swift */; };
+		58A74D91159C7A955C890F47 /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7F0AE8AD25A7F13B9A4C05E /* Settings.swift */; };
+		34DA8B2284387A7FDC159012 /* CameraEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 233B3B7C2211C1939971739A /* CameraEngine.swift */; };
+		A94DBCF9E5E90B2142EB576F /* PreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3F85ED5677CE5AE25B90AB5 /* PreviewView.swift */; };
+		F2540E71552CF2686C3C764A /* Recorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19A6E090F9BC7D5799249C08 /* Recorder.swift */; };
+		0FAE482085DA3E8410C1308E /* ChameleonProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50A0201898FAEBD0E884B01A /* ChameleonProtocol.swift */; };
+		4BDC154B816C9E1767F8FA52 /* MountController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3219B556E0F9C602CC00D3E /* MountController.swift */; };
+		2DE3C589962EE50FD10A54E0 /* HaishinStreamer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEFA6888EDE5AE7EDD98F52F /* HaishinStreamer.swift */; };
+		E4A2CCBF2ABE615EC941032D /* LiveStreamer.swift in Sources */ = {isa = PBXBuildFile; fileRef = C31E91810C4F9D6714F9471C /* LiveStreamer.swift */; };
+		0D4F55B6B945B4457127B24C /* BallTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9576125C705DA076E1835744 /* BallTracker.swift */; };
+		1AABF28B0520212DC4D8CD42 /* Detector.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE29E79FF98F0D8312EFFB02 /* Detector.swift */; };
+		B332D982929FD9E65E23BB9D /* Director.swift in Sources */ = {isa = PBXBuildFile; fileRef = 315E7929F61BDAD6651F01FD /* Director.swift */; };
+		D882466F26808D215155B736 /* Geometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6D1BAAC0A3118571E802174 /* Geometry.swift */; };
+		FCB4F91C7CD5E968C6331A9E /* TrackingEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EC786310FD3B6D6DFABA1F5 /* TrackingEngine.swift */; };
+		0532C35BBBB7B4BA8FAC15BD /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50771F7C7D443C9E52C6A70F /* ContentView.swift */; };
+		76B88717C8DC992D8FA0BA49 /* OverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D59A2B95F8A6C2633C54B80 /* OverlayView.swift */; };
+		17C3438F4A745D29408A0291 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A91A4F106B628CC2264E441 /* SettingsView.swift */; };
+		425DD74A4B0DF41E9FC61AAD /* HaishinKit in Frameworks */ = {isa = PBXBuildFile; productRef = ADAF893C67F0928DF52EE705 /* HaishinKit */; };
+		27FC8315F137215725FA7C97 /* RTMPHaishinKit in Frameworks */ = {isa = PBXBuildFile; productRef = A253C332F9EBCAE0CE67ACED /* RTMPHaishinKit */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		B068619D3D469E68604AAC67 /* RugbyCam.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RugbyCam.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B4954BF7356E5B8852A7D998 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		91C42A42FB2A1709AC5B955E /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+		7FEF2228AEC2B84D2D77B15D /* RugbyCamApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RugbyCamApp.swift; sourceTree = "<group>"; };
+		B7F0AE8AD25A7F13B9A4C05E /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
+		233B3B7C2211C1939971739A /* CameraEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraEngine.swift; sourceTree = "<group>"; };
+		C3F85ED5677CE5AE25B90AB5 /* PreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewView.swift; sourceTree = "<group>"; };
+		19A6E090F9BC7D5799249C08 /* Recorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Recorder.swift; sourceTree = "<group>"; };
+		50A0201898FAEBD0E884B01A /* ChameleonProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChameleonProtocol.swift; sourceTree = "<group>"; };
+		B3219B556E0F9C602CC00D3E /* MountController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MountController.swift; sourceTree = "<group>"; };
+		AEFA6888EDE5AE7EDD98F52F /* HaishinStreamer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HaishinStreamer.swift; sourceTree = "<group>"; };
+		C31E91810C4F9D6714F9471C /* LiveStreamer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveStreamer.swift; sourceTree = "<group>"; };
+		9576125C705DA076E1835744 /* BallTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BallTracker.swift; sourceTree = "<group>"; };
+		BE29E79FF98F0D8312EFFB02 /* Detector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Detector.swift; sourceTree = "<group>"; };
+		315E7929F61BDAD6651F01FD /* Director.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Director.swift; sourceTree = "<group>"; };
+		B6D1BAAC0A3118571E802174 /* Geometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Geometry.swift; sourceTree = "<group>"; };
+		6EC786310FD3B6D6DFABA1F5 /* TrackingEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackingEngine.swift; sourceTree = "<group>"; };
+		50771F7C7D443C9E52C6A70F /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		0D59A2B95F8A6C2633C54B80 /* OverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayView.swift; sourceTree = "<group>"; };
+		9A91A4F106B628CC2264E441 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		CED52DC5CC33C959C88A8CF4 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				425DD74A4B0DF41E9FC61AAD /* HaishinKit in Frameworks */,
+				27FC8315F137215725FA7C97 /* RTMPHaishinKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		06BF665E69E55850AA0C53BA = {
+			isa = PBXGroup;
+			children = (
+				CC0C0A3800913E9D6526B476 /* RugbyCam */,
+				5F8FF67A5DD45AE8B90F12C9 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		5F8FF67A5DD45AE8B90F12C9 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B068619D3D469E68604AAC67 /* RugbyCam.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		CC0C0A3800913E9D6526B476 /* RugbyCam */ = {
+			isa = PBXGroup;
+			children = (
+				2361015A5748AFAFDFB3548D /* App */,
+				AEB2CB6FA98C47938AA3BC35 /* Camera */,
+				93E60B3260DAE5E7A56FD108 /* Mount */,
+				39F5C68886D4F1FC4EC164B8 /* Stream */,
+				6CA6E20802627C28F1C97764 /* Tracking */,
+				678DE2E26BA548E362715026 /* UI */,
+				B4954BF7356E5B8852A7D998 /* Info.plist */,
+			);
+			path = RugbyCam;
+			sourceTree = "<group>";
+		};
+		2361015A5748AFAFDFB3548D /* App */ = {
+			isa = PBXGroup;
+			children = (
+				91C42A42FB2A1709AC5B955E /* AppModel.swift */,
+				7FEF2228AEC2B84D2D77B15D /* RugbyCamApp.swift */,
+				B7F0AE8AD25A7F13B9A4C05E /* Settings.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		AEB2CB6FA98C47938AA3BC35 /* Camera */ = {
+			isa = PBXGroup;
+			children = (
+				233B3B7C2211C1939971739A /* CameraEngine.swift */,
+				C3F85ED5677CE5AE25B90AB5 /* PreviewView.swift */,
+				19A6E090F9BC7D5799249C08 /* Recorder.swift */,
+			);
+			path = Camera;
+			sourceTree = "<group>";
+		};
+		93E60B3260DAE5E7A56FD108 /* Mount */ = {
+			isa = PBXGroup;
+			children = (
+				50A0201898FAEBD0E884B01A /* ChameleonProtocol.swift */,
+				B3219B556E0F9C602CC00D3E /* MountController.swift */,
+			);
+			path = Mount;
+			sourceTree = "<group>";
+		};
+		39F5C68886D4F1FC4EC164B8 /* Stream */ = {
+			isa = PBXGroup;
+			children = (
+				AEFA6888EDE5AE7EDD98F52F /* HaishinStreamer.swift */,
+				C31E91810C4F9D6714F9471C /* LiveStreamer.swift */,
+			);
+			path = Stream;
+			sourceTree = "<group>";
+		};
+		6CA6E20802627C28F1C97764 /* Tracking */ = {
+			isa = PBXGroup;
+			children = (
+				9576125C705DA076E1835744 /* BallTracker.swift */,
+				BE29E79FF98F0D8312EFFB02 /* Detector.swift */,
+				315E7929F61BDAD6651F01FD /* Director.swift */,
+				B6D1BAAC0A3118571E802174 /* Geometry.swift */,
+				6EC786310FD3B6D6DFABA1F5 /* TrackingEngine.swift */,
+			);
+			path = Tracking;
+			sourceTree = "<group>";
+		};
+		678DE2E26BA548E362715026 /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				50771F7C7D443C9E52C6A70F /* ContentView.swift */,
+				0D59A2B95F8A6C2633C54B80 /* OverlayView.swift */,
+				9A91A4F106B628CC2264E441 /* SettingsView.swift */,
+			);
+			path = UI;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		BC93C71DDA1390D1B9E2BB52 /* RugbyCam */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 674A59763BDE2D93BC0AAFA8 /* Build configuration list for PBXNativeTarget "RugbyCam" */;
+			buildPhases = (
+				3AB571886DEF901B704B3FBE /* Sources */,
+				CED52DC5CC33C959C88A8CF4 /* Frameworks */,
+				42F1C3573FC7F02EFE4F1740 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = RugbyCam;
+			packageProductDependencies = (
+				ADAF893C67F0928DF52EE705 /* HaishinKit */,
+				A253C332F9EBCAE0CE67ACED /* RTMPHaishinKit */,
+			);
+			productName = RugbyCam;
+			productReference = B068619D3D469E68604AAC67 /* RugbyCam.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		B12C551FEBBBA4C7B9D0682C /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					BC93C71DDA1390D1B9E2BB52 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = 8AA76EF238810C5ED0C3122F /* Build configuration list for PBXProject "RugbyCam" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 06BF665E69E55850AA0C53BA;
+			packageReferences = (
+				F900CAC3017E0A58C050F04F /* XCRemoteSwiftPackageReference "HaishinKit.swift" */,
+			);
+			productRefGroup = 5F8FF67A5DD45AE8B90F12C9 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				BC93C71DDA1390D1B9E2BB52 /* RugbyCam */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		42F1C3573FC7F02EFE4F1740 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		3AB571886DEF901B704B3FBE /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2C0215D3C6CE9C49BF71B9C2 /* AppModel.swift in Sources */,
+				EFD1098E488E4F62E5EC09E8 /* RugbyCamApp.swift in Sources */,
+				58A74D91159C7A955C890F47 /* Settings.swift in Sources */,
+				34DA8B2284387A7FDC159012 /* CameraEngine.swift in Sources */,
+				A94DBCF9E5E90B2142EB576F /* PreviewView.swift in Sources */,
+				F2540E71552CF2686C3C764A /* Recorder.swift in Sources */,
+				0FAE482085DA3E8410C1308E /* ChameleonProtocol.swift in Sources */,
+				4BDC154B816C9E1767F8FA52 /* MountController.swift in Sources */,
+				2DE3C589962EE50FD10A54E0 /* HaishinStreamer.swift in Sources */,
+				E4A2CCBF2ABE615EC941032D /* LiveStreamer.swift in Sources */,
+				0D4F55B6B945B4457127B24C /* BallTracker.swift in Sources */,
+				1AABF28B0520212DC4D8CD42 /* Detector.swift in Sources */,
+				B332D982929FD9E65E23BB9D /* Director.swift in Sources */,
+				D882466F26808D215155B736 /* Geometry.swift in Sources */,
+				FCB4F91C7CD5E968C6331A9E /* TrackingEngine.swift in Sources */,
+				0532C35BBBB7B4BA8FAC15BD /* ContentView.swift in Sources */,
+				76B88717C8DC992D8FA0BA49 /* OverlayView.swift in Sources */,
+				17C3438F4A745D29408A0291 /* SettingsView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		50149EC287C759B74A205534 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		239E322C2ECC5F1A88DB31D7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		997684C259E576261557CC27 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = RugbyCam/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.rugbycam.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		AE44C0C9433C74236225FD8F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = RugbyCam/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.rugbycam.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		8AA76EF238810C5ED0C3122F /* Build configuration list for PBXProject "RugbyCam" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				50149EC287C759B74A205534 /* Debug */,
+				239E322C2ECC5F1A88DB31D7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		674A59763BDE2D93BC0AAFA8 /* Build configuration list for PBXNativeTarget "RugbyCam" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				997684C259E576261557CC27 /* Debug */,
+				AE44C0C9433C74236225FD8F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		F900CAC3017E0A58C050F04F /* XCRemoteSwiftPackageReference "HaishinKit.swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/HaishinKit/HaishinKit.swift";
+			requirement = {
+				kind = exactVersion;
+				version = 2.2.5;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		ADAF893C67F0928DF52EE705 /* HaishinKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F900CAC3017E0A58C050F04F /* XCRemoteSwiftPackageReference "HaishinKit.swift" */;
+			productName = HaishinKit;
+		};
+		A253C332F9EBCAE0CE67ACED /* RTMPHaishinKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F900CAC3017E0A58C050F04F /* XCRemoteSwiftPackageReference "HaishinKit.swift" */;
+			productName = RTMPHaishinKit;
+		};
+/* End XCSwiftPackageProductDependency section */
+
+	};
+	rootObject = B12C551FEBBBA4C7B9D0682C /* Project object */;
+}

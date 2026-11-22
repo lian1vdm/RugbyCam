@@ -1,0 +1,364 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		BCBA2E94F7CBC922B9C6FAEC /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 483DE4D235C7DB79FC80EDEE /* AppModel.swift */; };
+		C1DC16E438337F55DAA093E3 /* RugbyCamApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58346376EA9F300F635FCEB9 /* RugbyCamApp.swift */; };
+		33BE1B2E6E892F69D840CB06 /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = D349839E9DC54078AC3CF840 /* Settings.swift */; };
+		36A34D1AC646737E0D385A15 /* CameraEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DEF7F49309CE471B880F4F0 /* CameraEngine.swift */; };
+		EC4601B386A5954FE3A55CEA /* PreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4F3379C16B83CD920E682BB /* PreviewView.swift */; };
+		768A3DA51EA2270159C7FEEE /* Recorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B34B4387C651AF176D63212 /* Recorder.swift */; };
+		5452C3A05A526CCE4702DEE6 /* ChameleonProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71FBF009EF9B5029DBB555DA /* ChameleonProtocol.swift */; };
+		3CCA229AD63548D2415443CE /* MountController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 328FCC02F7F804F80AEACE6F /* MountController.swift */; };
+		45CBF190B86622F0BA93E5E5 /* HaishinStreamer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12DBF63519D472E8B2BCAC0F /* HaishinStreamer.swift */; };
+		D06A4CB19C1541372C3F2F4E /* LiveStreamer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23982CAAB2E5FE4F7BBFEFC6 /* LiveStreamer.swift */; };
+		2AD8A84A1BBF9B8CDCA49070 /* BallTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB78DCB543D7FEA9393E111C /* BallTracker.swift */; };
+		50D21432B5195FD6A0940C94 /* Detector.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0ABBA98267BD7A656106B2A /* Detector.swift */; };
+		E5E384093524123AE6D2E972 /* Director.swift in Sources */ = {isa = PBXBuildFile; fileRef = 411725E7ADB45880EA60A921 /* Director.swift */; };
+		93A5A38E2E659B3343DADC3F /* Geometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E45ED6CB48B1B6C6B1D22EF /* Geometry.swift */; };
+		68D39FDD322864F001A78014 /* TrackingEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D61AE0BFEEBB38E68613E4A /* TrackingEngine.swift */; };
+		6D74F660ACB9AB7F72C1A5A3 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 541961619C603AA072F1A24F /* ContentView.swift */; };
+		7E37208FDE481559C8824F80 /* OverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BD088C65DE3FC4C96EFA3C1 /* OverlayView.swift */; };
+		FA2D8F8A17D6AEB63BF0A2FD /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E92E4472AD0B842F3A06FC98 /* SettingsView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		9DE0D3D7C52A9E42BF142F8D /* RugbyCam.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RugbyCam.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		0660B1DCDF2C2CB6C239C3E2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		483DE4D235C7DB79FC80EDEE /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+		58346376EA9F300F635FCEB9 /* RugbyCamApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RugbyCamApp.swift; sourceTree = "<group>"; };
+		D349839E9DC54078AC3CF840 /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
+		9DEF7F49309CE471B880F4F0 /* CameraEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraEngine.swift; sourceTree = "<group>"; };
+		C4F3379C16B83CD920E682BB /* PreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewView.swift; sourceTree = "<group>"; };
+		7B34B4387C651AF176D63212 /* Recorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Recorder.swift; sourceTree = "<group>"; };
+		71FBF009EF9B5029DBB555DA /* ChameleonProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChameleonProtocol.swift; sourceTree = "<group>"; };
+		328FCC02F7F804F80AEACE6F /* MountController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MountController.swift; sourceTree = "<group>"; };
+		12DBF63519D472E8B2BCAC0F /* HaishinStreamer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HaishinStreamer.swift; sourceTree = "<group>"; };
+		23982CAAB2E5FE4F7BBFEFC6 /* LiveStreamer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveStreamer.swift; sourceTree = "<group>"; };
+		DB78DCB543D7FEA9393E111C /* BallTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BallTracker.swift; sourceTree = "<group>"; };
+		A0ABBA98267BD7A656106B2A /* Detector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Detector.swift; sourceTree = "<group>"; };
+		411725E7ADB45880EA60A921 /* Director.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Director.swift; sourceTree = "<group>"; };
+		9E45ED6CB48B1B6C6B1D22EF /* Geometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Geometry.swift; sourceTree = "<group>"; };
+		0D61AE0BFEEBB38E68613E4A /* TrackingEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackingEngine.swift; sourceTree = "<group>"; };
+		541961619C603AA072F1A24F /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		3BD088C65DE3FC4C96EFA3C1 /* OverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayView.swift; sourceTree = "<group>"; };
+		E92E4472AD0B842F3A06FC98 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		6DD4B1BCBA06DEDB58E6CECB /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		525458E67987FAE4365B2CBB = {
+			isa = PBXGroup;
+			children = (
+				66EA33546E7DC41D08B512C3 /* RugbyCam */,
+				82BF65FC3383C8EFFF457B6B /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		82BF65FC3383C8EFFF457B6B /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				9DE0D3D7C52A9E42BF142F8D /* RugbyCam.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		66EA33546E7DC41D08B512C3 /* RugbyCam */ = {
+			isa = PBXGroup;
+			children = (
+				44F383F66BFF8B0C48301CF5 /* App */,
+				6C159BDB77F1A131471171E4 /* Camera */,
+				B0B7A89402AE941D15B55C3E /* Mount */,
+				B5DDD011817B9A98E072DB07 /* Stream */,
+				F861239F99E83E430F0C6A4A /* Tracking */,
+				5ACD97EA599B2DAC7B256807 /* UI */,
+				0660B1DCDF2C2CB6C239C3E2 /* Info.plist */,
+			);
+			path = RugbyCam;
+			sourceTree = "<group>";
+		};
+		44F383F66BFF8B0C48301CF5 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				483DE4D235C7DB79FC80EDEE /* AppModel.swift */,
+				58346376EA9F300F635FCEB9 /* RugbyCamApp.swift */,
+				D349839E9DC54078AC3CF840 /* Settings.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		6C159BDB77F1A131471171E4 /* Camera */ = {
+			isa = PBXGroup;
+			children = (
+				9DEF7F49309CE471B880F4F0 /* CameraEngine.swift */,
+				C4F3379C16B83CD920E682BB /* PreviewView.swift */,
+				7B34B4387C651AF176D63212 /* Recorder.swift */,
+			);
+			path = Camera;
+			sourceTree = "<group>";
+		};
+		B0B7A89402AE941D15B55C3E /* Mount */ = {
+			isa = PBXGroup;
+			children = (
+				71FBF009EF9B5029DBB555DA /* ChameleonProtocol.swift */,
+				328FCC02F7F804F80AEACE6F /* MountController.swift */,
+			);
+			path = Mount;
+			sourceTree = "<group>";
+		};
+		B5DDD011817B9A98E072DB07 /* Stream */ = {
+			isa = PBXGroup;
+			children = (
+				12DBF63519D472E8B2BCAC0F /* HaishinStreamer.swift */,
+				23982CAAB2E5FE4F7BBFEFC6 /* LiveStreamer.swift */,
+			);
+			path = Stream;
+			sourceTree = "<group>";
+		};
+		F861239F99E83E430F0C6A4A /* Tracking */ = {
+			isa = PBXGroup;
+			children = (
+				DB78DCB543D7FEA9393E111C /* BallTracker.swift */,
+				A0ABBA98267BD7A656106B2A /* Detector.swift */,
+				411725E7ADB45880EA60A921 /* Director.swift */,
+				9E45ED6CB48B1B6C6B1D22EF /* Geometry.swift */,
+				0D61AE0BFEEBB38E68613E4A /* TrackingEngine.swift */,
+			);
+			path = Tracking;
+			sourceTree = "<group>";
+		};
+		5ACD97EA599B2DAC7B256807 /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				541961619C603AA072F1A24F /* ContentView.swift */,
+				3BD088C65DE3FC4C96EFA3C1 /* OverlayView.swift */,
+				E92E4472AD0B842F3A06FC98 /* SettingsView.swift */,
+			);
+			path = UI;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		D0B9BAA7A7DAE8B5D1A61487 /* RugbyCam */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 84BC3E9456EA0459156E2226 /* Build configuration list for PBXNativeTarget "RugbyCam" */;
+			buildPhases = (
+				51C4BD75CF537476FE87E373 /* Sources */,
+				6DD4B1BCBA06DEDB58E6CECB /* Frameworks */,
+				E0091B642C7289AABA3C255F /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = RugbyCam;
+			productName = RugbyCam;
+			productReference = 9DE0D3D7C52A9E42BF142F8D /* RugbyCam.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		37DA95D2D8C256AEE957BD47 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					D0B9BAA7A7DAE8B5D1A61487 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = BBFA90DFFF079D3BC38007B5 /* Build configuration list for PBXProject "RugbyCam-Lite" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 525458E67987FAE4365B2CBB;
+			productRefGroup = 82BF65FC3383C8EFFF457B6B /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				D0B9BAA7A7DAE8B5D1A61487 /* RugbyCam */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		E0091B642C7289AABA3C255F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		51C4BD75CF537476FE87E373 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BCBA2E94F7CBC922B9C6FAEC /* AppModel.swift in Sources */,
+				C1DC16E438337F55DAA093E3 /* RugbyCamApp.swift in Sources */,
+				33BE1B2E6E892F69D840CB06 /* Settings.swift in Sources */,
+				36A34D1AC646737E0D385A15 /* CameraEngine.swift in Sources */,
+				EC4601B386A5954FE3A55CEA /* PreviewView.swift in Sources */,
+				768A3DA51EA2270159C7FEEE /* Recorder.swift in Sources */,
+				5452C3A05A526CCE4702DEE6 /* ChameleonProtocol.swift in Sources */,
+				3CCA229AD63548D2415443CE /* MountController.swift in Sources */,
+				45CBF190B86622F0BA93E5E5 /* HaishinStreamer.swift in Sources */,
+				D06A4CB19C1541372C3F2F4E /* LiveStreamer.swift in Sources */,
+				2AD8A84A1BBF9B8CDCA49070 /* BallTracker.swift in Sources */,
+				50D21432B5195FD6A0940C94 /* Detector.swift in Sources */,
+				E5E384093524123AE6D2E972 /* Director.swift in Sources */,
+				93A5A38E2E659B3343DADC3F /* Geometry.swift in Sources */,
+				68D39FDD322864F001A78014 /* TrackingEngine.swift in Sources */,
+				6D74F660ACB9AB7F72C1A5A3 /* ContentView.swift in Sources */,
+				7E37208FDE481559C8824F80 /* OverlayView.swift in Sources */,
+				FA2D8F8A17D6AEB63BF0A2FD /* SettingsView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		C084F764A90223123A8CA633 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		B7C0409863B12385CB842E67 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		3EB92488B6D26B1021BCF517 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = RugbyCam/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.rugbycam.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		4E49C02C0A4D8B56F8DDA6BF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = RugbyCam/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.rugbycam.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		BBFA90DFFF079D3BC38007B5 /* Build configuration list for PBXProject "RugbyCam-Lite" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C084F764A90223123A8CA633 /* Debug */,
+				B7C0409863B12385CB842E67 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		84BC3E9456EA0459156E2226 /* Build configuration list for PBXNativeTarget "RugbyCam" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3EB92488B6D26B1021BCF517 /* Debug */,
+				4E49C02C0A4D8B56F8DDA6BF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+	};
+	rootObject = 37DA95D2D8C256AEE957BD47 /* Project object */;
+}
