@@ -77,16 +77,25 @@ final class VideoScanner {
         // ---- Pass 1: let the model look at the whole video ----
         var looks: [Look] = []
         let steps = max(1, Int(duration / every))
+        // The model only needs about 1280 pixels across, so a smaller frame is
+        // enough here and uses far less memory than a 4K one.
+        generator.maximumSize = CGSize(width: 1920, height: 1920)
         for step in 0..<steps {
             if isCancelled { return 0 }
-            let time = CMTime(seconds: Double(step) * every, preferredTimescale: 600)
-            var actual = CMTime.zero
-            guard let frame = try? generator.copyCGImage(at: time, actualTime: &actual) else {
-                continue
+            // Free each frame right away; otherwise they pile up until iOS stops the app.
+            let look: Look? = autoreleasepool {
+                let time = CMTime(seconds: Double(step) * every, preferredTimescale: 600)
+                var actual = CMTime.zero
+                guard let frame = try? generator.copyCGImage(at: time, actualTime: &actual) else {
+                    return nil
+                }
+                let found = (try? detector.detect(in: CIImage(cgImage: frame), area: NBox.full)) ?? []
+                let best = found.max { $0.confidence < $1.confidence }
+                return Look(time: actual, box: best?.box, confidence: best?.confidence ?? 0.0)
             }
-            let found = (try? detector.detect(in: CIImage(cgImage: frame), area: NBox.full)) ?? []
-            let best = found.max { $0.confidence < $1.confidence }
-            looks.append(Look(time: actual, box: best?.box, confidence: best?.confidence ?? 0.0))
+            if let look = look {
+                looks.append(look)
+            }
             if step % 5 == 0 {
                 let fraction = 0.8 * Double(step + 1) / Double(steps)
                 let text = "Looking at the video: \(Int(Double(step) * every / 60.0)) of \(Int(duration / 60.0) + 1) min"
@@ -121,14 +130,19 @@ final class VideoScanner {
         let exact = CMTime(seconds: 0.02, preferredTimescale: 600)
         generator.requestedTimeToleranceBefore = exact
         generator.requestedTimeToleranceAfter = exact
+        generator.maximumSize = .zero    // full size for the pictures that are kept
         var saved = 0
         for (index, look) in chosen.enumerated() {
             if isCancelled { break }
-            guard let frame = try? generator.copyCGImage(at: look.time, actualTime: nil),
-                  let jpeg = UIImage(cgImage: frame).jpegData(compressionQuality: 0.88) else {
-                continue
+            let ok: Bool = autoreleasepool {
+                guard let frame = try? generator.copyCGImage(at: look.time, actualTime: nil),
+                      let jpeg = UIImage(cgImage: frame).jpegData(compressionQuality: 0.88) else {
+                    return false
+                }
+                store.add(jpeg: jpeg, source: "video", guess: look.box, confidence: look.confidence)
+                return true
             }
-            store.add(jpeg: jpeg, source: "video", guess: look.box, confidence: look.confidence)
+            if !ok { continue }
             saved += 1
             let fraction = 0.8 + 0.2 * Double(index + 1) / Double(chosen.count)
             let text = "Saving pictures: \(index + 1) of \(chosen.count)"
