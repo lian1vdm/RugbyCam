@@ -18,8 +18,9 @@ on:
 jobs:
   build:
     name: ${{ matrix.project }}
-    # If GitHub reports that this label does not exist, change it to macos-latest.
-    runs-on: macos-26
+    # GitHub's Apple-chip Macs (macos-26) were often fully booked, so this uses
+    # an Intel Mac. If this label stops working, try macos-26 or macos-latest.
+    runs-on: macos-15-intel
     strategy:
       fail-fast: false
       matrix:
@@ -29,8 +30,11 @@ jobs:
       - name: Get the code
         uses: actions/checkout@v4
 
-      - name: Show the Xcode version
-        run: xcodebuild -version
+      - name: Use the newest Xcode on the machine
+        run: |
+          newest=$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -1)
+          if [ -n "$newest" ]; then sudo xcode-select -s "$newest"; fi
+          xcodebuild -version
 
       - name: Check the project files
         run: python3 tools/check_project.py
