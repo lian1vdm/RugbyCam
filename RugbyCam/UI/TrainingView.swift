@@ -234,19 +234,26 @@ struct ReviewView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var itemID: String?
-    @State private var picture: CGImage?          // the whole picture
-    @State private var box: NBox?
-    @State private var boxAspect = 1.0             // height / width, in picture fractions
-    @State private var size = 0.012                // box width as a share of the picture width
-    @State private var zoomed = false
-    @State private var zoomCentre = NPoint(x: 0.5, y: 0.5)
-
-    private let zoomWidth = 0.22                   // share of the picture shown when zoomed in
+    @State private var picture: CGImage?
+    @State private var guess: NBox?                 // the model's guess (yellow, dashed)
+    @State private var guessConfidence = 0.0
+    @State private var box: NBox?                   // your box (green)
+    @State private var tapSize = 0.012              // width of a box made by a tap
+    @State private var zoom = ZoomCommand(kind: .whole, serial: 0)
 
     var body: some View {
-        VStack(spacing: 10) {
-            if let image = picture {
-                pictureView(image)
+        VStack(spacing: 8) {
+            if let image = picture, let id = itemID {
+                statusLine
+                BoxEditor(image: image, imageID: id, guess: guess, box: $box,
+                          tapSize: tapSize, zoom: zoom)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                Text("One finger: draw a box, or drag it and its corners. Tap: put the box there. Pinch: zoom. Two fingers: move the picture. Double-tap: zoom in or out.")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                viewButtons
+                answerButtons
             } else if store.pending.isEmpty {
                 Spacer()
                 Text("All pictures are checked.").font(.headline)
@@ -257,9 +264,6 @@ struct ReviewView: View {
                 ProgressView()
                 Spacer()
             }
-            if picture != nil {
-                controls
-            }
         }
         .padding(.horizontal, 10)
         .padding(.bottom, 8)
@@ -268,137 +272,110 @@ struct ReviewView: View {
         .onAppear { loadNext() }
     }
 
-    // MARK: Picture
+    // MARK: Parts of the screen
 
-    private var visibleRect: NBox {
-        guard zoomed else { return NBox.full }
-        let w = zoomWidth
-        let h = zoomWidth
-        let x = min(max(zoomCentre.x - w / 2.0, 0.0), 1.0 - w)
-        let y = min(max(zoomCentre.y - h / 2.0, 0.0), 1.0 - h)
-        return NBox(x: x, y: y, w: w, h: h)
-    }
-
-    private func pictureView(_ image: CGImage) -> some View {
-        let visible = visibleRect
-        let pixelWidth = Double(image.width)
-        let pixelHeight = Double(image.height)
-        let crop = CGRect(x: visible.x * pixelWidth, y: visible.y * pixelHeight,
-                          width: visible.w * pixelWidth, height: visible.h * pixelHeight).integral
-        let shown = image.cropping(to: crop) ?? image
-        let aspect = CGSize(width: crop.width, height: crop.height)
-        return GeometryReader { geometry in
-            let frame = AVMakeRect(aspectRatio: aspect, insideRect: CGRect(origin: .zero, size: geometry.size))
-            ZStack(alignment: .topLeading) {
-                Image(decorative: shown, scale: 1.0)
-                    .resizable()
-                    .frame(width: frame.width, height: frame.height)
-                    .offset(x: frame.minX, y: frame.minY)
-                if let current = box {
-                    let rect = ReviewView.place(current, visible: visible, in: frame)
-                    Rectangle()
-                        .stroke(Color.red, lineWidth: 2)
-                        .frame(width: max(rect.width, 6), height: max(rect.height, 6))
-                        .offset(x: rect.midX - max(rect.width, 6) / 2.0, y: rect.midY - max(rect.height, 6) / 2.0)
-                    Circle()
-                        .stroke(Color.yellow, lineWidth: 1)
-                        .frame(width: max(rect.width, 6) + 24, height: max(rect.height, 6) + 24)
-                        .offset(x: rect.midX - (max(rect.width, 6) + 24) / 2.0,
-                                y: rect.midY - (max(rect.height, 6) + 24) / 2.0)
-                }
+    private var statusLine: some View {
+        HStack(spacing: 8) {
+            if guess != nil {
+                Image(systemName: guessConfidence < 0.55 ? "questionmark.circle.fill" : "checkmark.circle.fill")
+                    .foregroundColor(guessConfidence < 0.55 ? .orange : .green)
+                Text(String(format: "Model's guess (yellow, dashed): %.0f %% sure", guessConfidence * 100.0)
+                     + (guessConfidence < 0.55 ? ". Check it closely." : "."))
+            } else {
+                Image(systemName: "eye.slash")
+                    .foregroundColor(.orange)
+                Text("The model found no ball. Draw a box if you can see one.")
             }
-            .contentShape(Rectangle())
-            .gesture(DragGesture(minimumDistance: 0).onChanged { drag in
-                let fx = (Double(drag.location.x) - Double(frame.minX)) / Double(frame.width)
-                let fy = (Double(drag.location.y) - Double(frame.minY)) / Double(frame.height)
-                guard fx >= 0.0, fx <= 1.0, fy >= 0.0, fy <= 1.0 else { return }
-                let point = NPoint(x: visible.x + fx * visible.w, y: visible.y + fy * visible.h)
-                setCentre(point)
-            })
+            Spacer(minLength: 0)
         }
+        .font(.footnote)
     }
 
-    /// Converts a box in whole-picture fractions into screen points.
-    private static func place(_ box: NBox, visible: NBox, in frame: CGRect) -> CGRect {
-        let x = (box.x - visible.x) / visible.w
-        let y = (box.y - visible.y) / visible.h
-        return CGRect(x: Double(frame.minX) + x * Double(frame.width),
-                      y: Double(frame.minY) + y * Double(frame.height),
-                      width: box.w / visible.w * Double(frame.width),
-                      height: box.h / visible.h * Double(frame.height))
-    }
-
-    private func setCentre(_ point: NPoint) {
-        let w = size
-        let h = size * boxAspect
-        box = NBox(x: min(max(point.x - w / 2.0, 0.0), 1.0 - w),
-                   y: min(max(point.y - h / 2.0, 0.0), 1.0 - h),
-                   w: w, h: h)
-    }
-
-    // MARK: Controls
-
-    private var controls: some View {
-        VStack(spacing: 8) {
-            HStack {
-                Text("Box size").font(.footnote)
-                Slider(value: Binding(get: { log(size) },
-                                      set: { size = exp($0); if let current = box { setCentre(current.center) } }),
-                       in: log(0.003)...log(0.08))
-                Toggle(isOn: Binding(get: { zoomed }, set: { on in
-                    if on {
-                        zoomCentre = box?.center ?? NPoint(x: 0.5, y: 0.5)
-                    }
-                    zoomed = on
-                })) {
-                    Label("Zoom", systemImage: "plus.magnifyingglass")
-                }
-                .toggleStyle(.button)
+    private var viewButtons: some View {
+        HStack(spacing: 8) {
+            Button {
+                newZoom(.whole)
+            } label: {
+                Label("Whole", systemImage: "arrow.down.right.and.arrow.up.left")
+                    .frame(maxWidth: .infinity)
             }
-            HStack(spacing: 10) {
+            Button {
+                if let target = box ?? guess {
+                    newZoom(.around(target))
+                }
+            } label: {
+                Label("Zoom to box", systemImage: "scope")
+                    .frame(maxWidth: .infinity)
+            }
+            .disabled(box == nil && guess == nil)
+            if let modelGuess = guess {
                 Button {
-                    finish(.noBall)
+                    box = modelGuess
+                    newZoom(.around(modelGuess))
                 } label: {
-                    Label("No ball", systemImage: "xmark.circle")
+                    Label("Edit guess", systemImage: "pencil")
                         .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.bordered)
-                Button {
-                    discardCurrent()
-                } label: {
-                    Label("Throw away", systemImage: "trash")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
-                .tint(.orange)
-                Button {
-                    if let current = box {
-                        finish(.ball(current))
-                    }
-                } label: {
-                    Label("Ball is here", systemImage: "checkmark.circle.fill")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.green)
-                .disabled(box == nil)
             }
-            Text(hint).font(.caption).foregroundColor(.secondary)
+            if box != nil {
+                Button(role: .destructive) {
+                    box = nil
+                } label: {
+                    Label("Clear", systemImage: "xmark")
+                        .frame(maxWidth: .infinity)
+                }
+            }
         }
+        .buttonStyle(.bordered)
+        .font(.footnote)
+        .labelStyle(.titleAndIcon)
     }
 
-    private var hint: String {
-        guard let id = itemID, let item = store.items.first(where: { $0.id == id }) else { return "" }
-        if item.guess != nil {
-            return String(format: "Red box: your model's guess (%.0f %% sure). Tap or drag to move it. \"Throw away\" if you cannot tell.", item.guessConfidence * 100.0)
+    private var answerButtons: some View {
+        HStack(spacing: 8) {
+            Button {
+                finish(.noBall)
+            } label: {
+                Label("No ball", systemImage: "circle.slash")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            Button {
+                discardCurrent()
+            } label: {
+                Label("Throw away", systemImage: "trash")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .tint(.orange)
+            Button {
+                if let answer = box ?? guess {
+                    finish(.ball(answer))
+                }
+            } label: {
+                Label(box == nil && guess != nil ? "Guess is right" : "Ball is here",
+                      systemImage: "checkmark.circle.fill")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.green)
+            .disabled(box == nil && guess == nil)
         }
-        return "Your model found nothing here. Tap where the ball is, or choose \"No ball\"."
+        .font(.subheadline)
     }
 
     // MARK: Moving on
 
+    private func newZoom(_ kind: ZoomCommand.Kind) {
+        zoom = ZoomCommand(kind: kind, serial: zoom.serial + 1)
+    }
+
     private func finish(_ label: TrainingLabel) {
         guard let id = itemID else { return }
+        if case .ball(let answer) = label {
+            // The next ball is probably about as big: a tap makes a box this size.
+            tapSize = min(max(answer.w, 0.003), 0.08)
+        }
         store.setLabel(label, for: id)
         loadNext()
     }
@@ -412,34 +389,384 @@ struct ReviewView: View {
     private func loadNext() {
         picture = nil
         box = nil
-        zoomed = false
         guard let next = store.pending.first else {
             itemID = nil
+            guess = nil
             return
         }
         itemID = next.id
-        if let guess = next.guess {
-            box = guess
-            size = max(guess.w, 0.003)
-            boxAspect = guess.w > 0 ? guess.h / guess.w : 1.0
-        } else {
-            size = 0.012
-            boxAspect = 16.0 / 9.0 * 0.75     // a slightly wide oval in pixels
-        }
+        guess = next.guess
+        guessConfidence = next.guessConfidence
         let url = store.imageURL(for: next.id)
         DispatchQueue.global(qos: .userInitiated).async {
             // Full size, so zooming in stays sharp for small, far-away balls.
             let image = TrainingStore.loadImage(at: url, maxPixels: 4096)
             DispatchQueue.main.async {
-                if itemID == next.id {
-                    if let image = image {
-                        picture = image
-                    } else {
-                        store.discard(next.id)
-                        loadNext()
-                    }
+                guard itemID == next.id else { return }
+                if let image = image {
+                    picture = image
+                    newZoom(next.guess.map { ZoomCommand.Kind.around($0) } ?? ZoomCommand.Kind.whole)
+                } else {
+                    store.discard(next.id)
+                    loadNext()
                 }
             }
+        }
+    }
+}
+
+// MARK: - The zoomable picture with the boxes
+
+/// Asks the picture to zoom. A new serial number makes it zoom again.
+struct ZoomCommand: Equatable {
+    enum Kind: Equatable {
+        case whole
+        case around(NBox)
+    }
+    var kind: Kind
+    var serial: Int
+}
+
+final class BoxEditorScrollView: UIScrollView {
+    var onSizeChange: (() -> Void)?
+    private var lastSize = CGSize.zero
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        if bounds.size != lastSize {
+            lastSize = bounds.size
+            onSizeChange?()
+        }
+    }
+}
+
+/// The picture at full resolution in a scroll view: pinch to zoom, two fingers
+/// to move, one finger to draw, move or resize the box.
+struct BoxEditor: UIViewRepresentable {
+    let image: CGImage
+    let imageID: String
+    let guess: NBox?
+    @Binding var box: NBox?
+    let tapSize: Double
+    let zoom: ZoomCommand
+
+    func makeCoordinator() -> Coordinator {
+        return Coordinator()
+    }
+
+    func makeUIView(context: Context) -> BoxEditorScrollView {
+        let coordinator = context.coordinator
+        coordinator.parent = self
+        let scrollView = BoxEditorScrollView()
+        scrollView.delegate = coordinator
+        scrollView.backgroundColor = .black
+        scrollView.showsHorizontalScrollIndicator = false
+        scrollView.showsVerticalScrollIndicator = false
+        scrollView.contentInsetAdjustmentBehavior = .never
+        scrollView.bouncesZoom = true
+        scrollView.delaysContentTouches = false
+        scrollView.panGestureRecognizer.minimumNumberOfTouches = 2
+        coordinator.scrollView = scrollView
+
+        scrollView.addSubview(coordinator.content)
+        coordinator.content.addSubview(coordinator.imageView)
+        coordinator.content.layer.addSublayer(coordinator.guessLayer)
+        coordinator.content.layer.addSublayer(coordinator.boxLayer)
+        coordinator.content.layer.addSublayer(coordinator.handleLayer)
+
+        let draw = UIPanGestureRecognizer(target: coordinator, action: #selector(Coordinator.drag(_:)))
+        draw.maximumNumberOfTouches = 1
+        coordinator.content.addGestureRecognizer(draw)
+        coordinator.drawGesture = draw
+
+        let doubleTap = UITapGestureRecognizer(target: coordinator, action: #selector(Coordinator.doubleTap(_:)))
+        doubleTap.numberOfTapsRequired = 2
+        coordinator.content.addGestureRecognizer(doubleTap)
+        let tap = UITapGestureRecognizer(target: coordinator, action: #selector(Coordinator.tap(_:)))
+        tap.require(toFail: doubleTap)
+        coordinator.content.addGestureRecognizer(tap)
+
+        scrollView.onSizeChange = { [weak coordinator] in
+            coordinator?.sizeChanged(reset: false)
+        }
+        return scrollView
+    }
+
+    func updateUIView(_ scrollView: BoxEditorScrollView, context: Context) {
+        let coordinator = context.coordinator
+        coordinator.parent = self
+        coordinator.show(image, id: imageID)
+        if zoom.serial != coordinator.zoomSerial {
+            coordinator.zoomSerial = zoom.serial
+            coordinator.pendingZoom = zoom.kind
+            coordinator.applyPendingZoom()
+        }
+        coordinator.redraw()
+    }
+
+    final class Coordinator: NSObject, UIScrollViewDelegate {
+        var parent: BoxEditor!
+        weak var scrollView: BoxEditorScrollView?
+        weak var drawGesture: UIPanGestureRecognizer?
+        let content = UIView()
+        let imageView = UIImageView()
+        let guessLayer = CAShapeLayer()
+        let boxLayer = CAShapeLayer()
+        let handleLayer = CAShapeLayer()
+        var zoomSerial = -1
+        var pendingZoom: ZoomCommand.Kind?
+
+        private var imageID: String?
+        private var imageSize = CGSize(width: 1.0, height: 1.0)
+
+        private enum DragMode {
+            case create(CGPoint)               // from this corner to the finger
+            case resize(CGPoint)               // the opposite corner stays put
+            case move(CGRect, CGPoint)         // box and finger at the start
+        }
+        private var mode: DragMode?
+        private var boxBeforeDrag: NBox?
+
+        override init() {
+            super.init()
+            imageView.contentMode = .scaleToFill
+            guessLayer.fillColor = nil
+            guessLayer.strokeColor = UIColor.systemYellow.cgColor
+            boxLayer.fillColor = UIColor.systemGreen.withAlphaComponent(0.15).cgColor
+            boxLayer.strokeColor = UIColor.systemGreen.cgColor
+            handleLayer.fillColor = UIColor.white.cgColor
+            handleLayer.strokeColor = UIColor.systemGreen.cgColor
+        }
+
+        // MARK: Picture and zoom
+
+        func show(_ image: CGImage, id: String) {
+            guard id != imageID, let scrollView = scrollView else { return }
+            imageID = id
+            imageView.image = UIImage(cgImage: image)
+            imageSize = CGSize(width: max(image.width, 1), height: max(image.height, 1))
+            scrollView.minimumZoomScale = 1.0
+            scrollView.zoomScale = 1.0
+            content.frame = CGRect(origin: .zero, size: imageSize)
+            imageView.frame = content.bounds
+            for layer in [guessLayer, boxLayer, handleLayer] {
+                layer.frame = content.bounds
+            }
+            scrollView.contentSize = imageSize
+            sizeChanged(reset: true)
+        }
+
+        func sizeChanged(reset: Bool) {
+            guard let scrollView = scrollView, imageID != nil,
+                  scrollView.bounds.width > 0, scrollView.bounds.height > 0 else { return }
+            let wasWhole = scrollView.zoomScale <= scrollView.minimumZoomScale + 0.0001
+            let fit = min(scrollView.bounds.width / imageSize.width, scrollView.bounds.height / imageSize.height)
+            scrollView.minimumZoomScale = fit
+            // Up to 3 screen points per picture pixel: enough to see a far-away ball.
+            scrollView.maximumZoomScale = max(fit * 2.0, 3.0)
+            if reset || wasWhole || scrollView.zoomScale < fit {
+                scrollView.zoomScale = fit
+            }
+            centre()
+            applyPendingZoom()
+            redraw()
+        }
+
+        func applyPendingZoom() {
+            guard let kind = pendingZoom, let scrollView = scrollView, imageID != nil,
+                  scrollView.bounds.width > 0, scrollView.bounds.height > 0 else { return }
+            pendingZoom = nil
+            switch kind {
+            case .whole:
+                scrollView.setZoomScale(scrollView.minimumZoomScale, animated: true)
+            case .around(let target):
+                // Show the box with plenty of picture around it.
+                let width = max(target.w * 10.0, 0.12) * imageSize.width
+                let height = width * scrollView.bounds.height / scrollView.bounds.width
+                let centre = CGPoint(x: (target.x + target.w / 2.0) * imageSize.width,
+                                     y: (target.y + target.h / 2.0) * imageSize.height)
+                scrollView.zoom(to: CGRect(x: centre.x - width / 2.0, y: centre.y - height / 2.0,
+                                           width: width, height: height), animated: true)
+            }
+        }
+
+        /// Keeps the picture in the middle when it is smaller than the screen.
+        private func centre() {
+            guard let scrollView = scrollView else { return }
+            let dx = max((scrollView.bounds.width - content.frame.width) / 2.0, 0.0)
+            let dy = max((scrollView.bounds.height - content.frame.height) / 2.0, 0.0)
+            scrollView.contentInset = UIEdgeInsets(top: dy, left: dx, bottom: dy, right: dx)
+        }
+
+        func viewForZooming(in scrollView: UIScrollView) -> UIView? {
+            return content
+        }
+
+        func scrollViewDidZoom(_ scrollView: UIScrollView) {
+            centre()
+            redraw()
+        }
+
+        func scrollViewWillBeginZooming(_ scrollView: UIScrollView, with view: UIView?) {
+            cancelDrag()
+        }
+
+        func scrollViewWillBeginDragging(_ scrollView: UIScrollView) {
+            cancelDrag()
+        }
+
+        // MARK: Drawing
+
+        private var scale: CGFloat {
+            return max(scrollView?.zoomScale ?? 1.0, 0.0001)
+        }
+
+        private func rect(for box: NBox) -> CGRect {
+            return CGRect(x: box.x * imageSize.width, y: box.y * imageSize.height,
+                          width: box.w * imageSize.width, height: box.h * imageSize.height)
+        }
+
+        /// Top left, top right, bottom left, bottom right.
+        private func corners(of rect: CGRect) -> [CGPoint] {
+            return [CGPoint(x: rect.minX, y: rect.minY), CGPoint(x: rect.maxX, y: rect.minY),
+                    CGPoint(x: rect.minX, y: rect.maxY), CGPoint(x: rect.maxX, y: rect.maxY)]
+        }
+
+        func redraw() {
+            let s = scale
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            // Lines keep the same thickness on screen at every zoom.
+            guessLayer.lineWidth = 1.5 / s
+            guessLayer.lineDashPattern = [NSNumber(value: Double(6.0 / s)), NSNumber(value: Double(4.0 / s))]
+            if let modelGuess = parent?.guess {
+                let outer = rect(for: modelGuess).insetBy(dx: -3.0 / s, dy: -3.0 / s)
+                guessLayer.path = UIBezierPath(rect: outer).cgPath
+            } else {
+                guessLayer.path = nil
+            }
+            boxLayer.lineWidth = 1.5 / s
+            handleLayer.lineWidth = 1.5 / s
+            if let current = parent?.box {
+                let r = rect(for: current)
+                boxLayer.path = UIBezierPath(rect: r).cgPath
+                let handles = UIBezierPath()
+                let radius = 5.0 / s
+                for corner in corners(of: r) {
+                    handles.append(UIBezierPath(ovalIn: CGRect(x: corner.x - radius, y: corner.y - radius,
+                                                               width: radius * 2.0, height: radius * 2.0)))
+                }
+                handleLayer.path = handles.cgPath
+            } else {
+                boxLayer.path = nil
+                handleLayer.path = nil
+            }
+            CATransaction.commit()
+        }
+
+        // MARK: Touches
+
+        private func clamped(_ point: CGPoint) -> CGPoint {
+            return CGPoint(x: min(max(point.x, 0.0), imageSize.width),
+                           y: min(max(point.y, 0.0), imageSize.height))
+        }
+
+        private func distance(_ a: CGPoint, _ b: CGPoint) -> CGFloat {
+            return hypot(a.x - b.x, a.y - b.y)
+        }
+
+        @objc func drag(_ gesture: UIPanGestureRecognizer) {
+            let point = clamped(gesture.location(in: content))
+            switch gesture.state {
+            case .began:
+                let moved = gesture.translation(in: content)
+                let start = clamped(CGPoint(x: point.x - moved.x, y: point.y - moved.y))
+                boxBeforeDrag = parent.box
+                let reach = 30.0 / scale
+                mode = .create(start)
+                if let current = parent.box {
+                    let r = rect(for: current)
+                    let list = corners(of: r)
+                    let nearest = list.indices.min { distance(list[$0], start) < distance(list[$1], start) } ?? 0
+                    if distance(list[nearest], start) <= reach {
+                        mode = .resize(list[3 - nearest])
+                    } else if r.insetBy(dx: -reach / 2.0, dy: -reach / 2.0).contains(start) {
+                        mode = .move(r, start)
+                    }
+                }
+                update(point)
+            case .changed:
+                update(point)
+            default:
+                mode = nil
+                boxBeforeDrag = nil
+            }
+        }
+
+        private func update(_ point: CGPoint) {
+            guard let mode = mode else { return }
+            switch mode {
+            case .create(let anchor), .resize(let anchor):
+                set(CGRect(x: min(anchor.x, point.x), y: min(anchor.y, point.y),
+                           width: abs(point.x - anchor.x), height: abs(point.y - anchor.y)))
+            case .move(let start, let finger):
+                var moved = start.offsetBy(dx: point.x - finger.x, dy: point.y - finger.y)
+                moved.origin.x = min(max(moved.minX, 0.0), imageSize.width - moved.width)
+                moved.origin.y = min(max(moved.minY, 0.0), imageSize.height - moved.height)
+                set(moved)
+            }
+        }
+
+        /// A second finger came down: that was the start of a pinch, not a box.
+        private func cancelDrag() {
+            guard mode != nil else { return }
+            mode = nil
+            parent.box = boxBeforeDrag
+            boxBeforeDrag = nil
+            drawGesture?.isEnabled = false
+            drawGesture?.isEnabled = true
+            redraw()
+        }
+
+        @objc func tap(_ gesture: UITapGestureRecognizer) {
+            let point = clamped(gesture.location(in: content))
+            let width: CGFloat
+            let height: CGFloat
+            if let current = parent.box {
+                let r = rect(for: current)
+                width = r.width
+                height = r.height
+            } else {
+                width = CGFloat(parent.tapSize) * imageSize.width
+                height = width * 0.75          // a rugby ball is a little wider than tall
+            }
+            set(CGRect(x: point.x - width / 2.0, y: point.y - height / 2.0, width: width, height: height))
+        }
+
+        @objc func doubleTap(_ gesture: UITapGestureRecognizer) {
+            guard let scrollView = scrollView else { return }
+            if scrollView.zoomScale > scrollView.minimumZoomScale * 1.5 {
+                scrollView.setZoomScale(scrollView.minimumZoomScale, animated: true)
+                return
+            }
+            let target = min(scrollView.minimumZoomScale * 5.0, scrollView.maximumZoomScale)
+            let point = gesture.location(in: content)
+            let width = scrollView.bounds.width / target
+            let height = scrollView.bounds.height / target
+            scrollView.zoom(to: CGRect(x: point.x - width / 2.0, y: point.y - height / 2.0,
+                                       width: width, height: height), animated: true)
+        }
+
+        /// Stores a box given in picture pixels.
+        private func set(_ rect: CGRect) {
+            var r = rect.standardized
+            r.size.width = min(max(r.width, 2.0), imageSize.width)
+            r.size.height = min(max(r.height, 2.0), imageSize.height)
+            r.origin.x = min(max(r.minX, 0.0), imageSize.width - r.width)
+            r.origin.y = min(max(r.minY, 0.0), imageSize.height - r.height)
+            parent.box = NBox(x: Double(r.minX / imageSize.width), y: Double(r.minY / imageSize.height),
+                              w: Double(r.width / imageSize.width), h: Double(r.height / imageSize.height))
+            redraw()
         }
     }
 }
