@@ -364,14 +364,30 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
     /// The completion runs on the session queue.
     func recordingSettings(codec: RecordingCodec, completion: @escaping ([String: Any]?, [String: Any]?) -> Void) {
         sessionQueue.async {
-            let codecType: AVVideoCodecType = codec == .hevc ? .hevc : .h264
-            var video = self.videoOutput.recommendedVideoSettings(forVideoCodecType: codecType, assetWriterOutputFileType: .mov)
+            let wanted: AVVideoCodecType = codec == .hevc ? .hevc : .h264
+            // Asking for a codec the output does not list makes iOS throw an
+            // exception that closes the app, so only ask for listed ones.
+            let available = self.videoOutput.availableVideoCodecTypesForAssetWriter(writingTo: .mov)
+            var video: [String: Any]?
+            if available.contains(wanted) {
+                video = self.videoOutput.recommendedVideoSettings(forVideoCodecType: wanted, assetWriterOutputFileType: .mov)
+            }
             if video == nil {
+                // Build the settings by hand.
                 let current = self.info
+                let fps = max(current.fps, 1)
+                let pixelsPerSecond = Double(current.width * current.height * fps)
+                // About 0.09 bits per pixel for HEVC, 0.14 for H.264 (4K 60: roughly 45 / 70 Mbit/s).
+                let bitsPerPixel = wanted == .hevc ? 0.09 : 0.14
                 video = [
-                    AVVideoCodecKey: codecType,
+                    AVVideoCodecKey: wanted,
                     AVVideoWidthKey: current.width,
-                    AVVideoHeightKey: current.height
+                    AVVideoHeightKey: current.height,
+                    AVVideoCompressionPropertiesKey: [
+                        AVVideoAverageBitRateKey: Int(pixelsPerSecond * bitsPerPixel),
+                        AVVideoExpectedSourceFrameRateKey: fps,
+                        AVVideoMaxKeyFrameIntervalKey: fps
+                    ] as [String: Any]
                 ]
             }
             var audio: [String: Any]?

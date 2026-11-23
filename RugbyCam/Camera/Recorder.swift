@@ -56,7 +56,20 @@ final class Recorder {
         // Close the file in pieces, so a crash or an empty battery does not lose the whole match.
         newWriter.movieFragmentInterval = CMTime(seconds: 10.0, preferredTimescale: 600)
 
-        let video = AVAssetWriterInput(mediaType: .video, outputSettings: videoSettings)
+        // Settings the writer cannot use make iOS throw an exception that closes
+        // the app, so check them first and fall back to plain H.264.
+        var usableVideo = videoSettings
+        if !newWriter.canApply(outputSettings: usableVideo, forMediaType: .video) {
+            usableVideo = [
+                AVVideoCodecKey: AVVideoCodecType.h264,
+                AVVideoWidthKey: videoSettings[AVVideoWidthKey] ?? 1920,
+                AVVideoHeightKey: videoSettings[AVVideoHeightKey] ?? 1080
+            ]
+            guard newWriter.canApply(outputSettings: usableVideo, forMediaType: .video) else {
+                throw RecorderError.cannotAddInput
+            }
+        }
+        let video = AVAssetWriterInput(mediaType: .video, outputSettings: usableVideo)
         video.expectsMediaDataInRealTime = true
         guard newWriter.canAdd(video) else {
             throw RecorderError.cannotAddInput
@@ -64,7 +77,7 @@ final class Recorder {
         newWriter.add(video)
 
         var audio: AVAssetWriterInput?
-        if let settings = audioSettings {
+        if let settings = audioSettings, newWriter.canApply(outputSettings: settings, forMediaType: .audio) {
             let input = AVAssetWriterInput(mediaType: .audio, outputSettings: settings)
             input.expectsMediaDataInRealTime = true
             if newWriter.canAdd(input) {
