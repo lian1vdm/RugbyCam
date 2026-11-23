@@ -110,6 +110,11 @@ struct AppSettings: Codable, Equatable {
     var invertPan = false
     var invertTilt = false
 
+    // Training
+    var saveHardFrames = false        // keep pictures of moments the ball is lost while recording
+    var importEvery = 1.0             // seconds between two looks when importing a video
+    var importKeep = 60               // pictures kept per imported video
+
     // Streaming
     var streamURL = "rtmp://a.rtmp.youtube.com/live2"
     var streamResolution = StreamResolution.p1080

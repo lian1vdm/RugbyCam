@@ -49,6 +49,7 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
     // MARK: - Parts
 
     let camera = CameraEngine()
+    let training = TrainingStore()
     private lazy var recorder = Recorder(queue: camera.captureQueue)
     private let tracking = TrackingEngine()
     private let mount = MountController()
@@ -69,6 +70,7 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
 
     init() {
         camera.delegate = self
+        tracking.trainingStore = training
         recorder.onFailure = { [weak self] error in
             DispatchQueue.main.async {
                 self?.recordingBroke(error)
@@ -213,6 +215,7 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
         config.tiltEnabled = settings.tiltEnabled
         config.invertPan = settings.invertPan
         config.invertTilt = settings.invertTilt
+        config.collectTraining = settings.saveHardFrames && isRecording
         tracking.config = config
         if !config.enabled {
             snapshot = TrackingSnapshot()
@@ -311,6 +314,7 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
                         self.isRecording = true
                         self.recordingSeconds = 0
                         self.startClock()
+                        self.pushTrackingConfig()
                     }
                 } catch {
                     DispatchQueue.main.async {
@@ -344,6 +348,7 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
 
     private func recordingEnded() {
         isRecording = false
+        pushTrackingConfig()
         clock?.invalidate()
         clock = nil
         // A video setting changed during the recording: apply it now.

@@ -10,6 +10,7 @@ struct SettingsView: View {
                 recordingSection
                 trackingSection
                 modelSection
+                trainingSection
                 mountSection
                 streamSection
                 aboutSection
@@ -115,6 +116,30 @@ struct SettingsView: View {
             Text("Models")
         } footer: {
             Text("Convert your trained best.pt with tools/export_coreml.py, rename the result to BallDetector.mlpackage and copy it into Files > On My iPhone > RugbyCam. Then tap the button above.")
+        }
+    }
+
+    // MARK: - Training
+
+    private var trainingSection: some View {
+        Section {
+            NavigationLink {
+                TrainingView(store: model.training)
+                    .environmentObject(model)
+            } label: {
+                HStack {
+                    Label("Improve the ball model", systemImage: "graduationcap")
+                    Spacer()
+                    if !model.training.pending.isEmpty {
+                        Text("\(model.training.pending.count) to check")
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+        } header: {
+            Text("Training")
+        } footer: {
+            Text("Import match videos or keep the moments the ball was lost, mark the ball, and send the pictures to your PC to train the model again.")
         }
     }
 

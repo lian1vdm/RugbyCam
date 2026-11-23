@@ -12,7 +12,7 @@ struct NPoint: Equatable {
 }
 
 /// A rectangle in normalised image coordinates. (x, y) is the top-left corner.
-struct NBox: Equatable {
+struct NBox: Equatable, Codable {
     var x: Double
     var y: Double
     var w: Double

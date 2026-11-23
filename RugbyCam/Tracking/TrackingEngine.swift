@@ -22,6 +22,7 @@ struct TrackingConfig {
     var tiltEnabled = true
     var invertPan = false
     var invertTilt = false
+    var collectTraining = false   // save pictures where the ball is lost (while recording)
 }
 
 /// What the tracking saw in the latest frame, for the overlay and the status line.
@@ -54,6 +55,9 @@ struct ModelReport {
 
 /// Runs the detectors on camera frames and turns what they see into commands.
 final class TrackingEngine {
+    /// Where pictures of lost-ball moments go. Set once at start-up.
+    var trainingStore: TrainingStore?
+
     /// Called on the tracking queue after every look.
     var onResult: ((TrackingSnapshot, TrackingCommand) -> Void)?
 
@@ -210,6 +214,13 @@ final class TrackingEngine {
             }
         }
         let players = (time - cachedPlayersTime) <= 0.5 ? cachedPlayers : []
+
+        // ---- Training pictures: players in view, but no ball ----
+        if config.collectTraining, ballDetector != nil, !tracker.isTracking, players.count >= 3,
+           let store = trainingStore {
+            let best = candidates.max { $0.confidence < $1.confidence }
+            store.offerLiveFrame(pixelBuffer, time: time, guess: best?.box, confidence: best?.confidence ?? 0.0)
+        }
 
         // ---- Decide ----
         director.params.panGain = 2.2 * config.followSpeed
