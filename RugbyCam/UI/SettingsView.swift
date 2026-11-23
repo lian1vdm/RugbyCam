@@ -25,6 +25,12 @@ struct SettingsView: View {
                 }
             }
         }
+        .onAppear {
+            OrientationLock.allowUpright()
+        }
+        .onDisappear {
+            OrientationLock.cameraOnly()
+        }
     }
 
     // MARK: - Recording
