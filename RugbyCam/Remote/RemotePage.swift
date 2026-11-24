@@ -45,6 +45,8 @@ input[type=range] { width:100%; height:36px; accent-color:var(--gold); }
 #conn { font-size:13px; color:var(--dim); }
 #pinbox { position:fixed; inset:0; background:rgba(0,0,0,.85); display:none; align-items:center; justify-content:center; }
 #pinbox .box { width:320px; text-align:center; }
+input { -webkit-user-select:text; user-select:text; }
+#pinmsg { color:var(--gold); font-size:14px; min-height:18px; margin-bottom:10px; }
 #pinbox input { font:inherit; font-size:32px; letter-spacing:12px; width:100%; text-align:center; margin:14px 0;
                 background:#000; color:var(--text); border:1px solid var(--line); border-radius:10px; padding:10px; }
 @media (max-width: 820px) { #app { flex-direction:column; height:auto; } #right { flex:none; } }
@@ -82,7 +84,8 @@ input[type=range] { width:100%; height:36px; accent-color:var(--gold); }
 </div>
 <div id="pinbox"><div class="box">
   <div>Enter the PIN shown on the iPhone<br><span style="color:var(--dim);font-size:13px">Settings › iPad remote</span></div>
-  <input id="pin" inputmode="numeric" maxlength="4" autocomplete="off">
+  <input id="pin" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off">
+  <div id="pinmsg"></div>
   <button id="pinok">Connect</button>
 </div></div>
 <script>
@@ -91,18 +94,26 @@ try { pin = localStorage.getItem('rugbycam.pin') || ''; } catch (e) {}
 let last = null, dragging = false, failures = 0;
 const $ = id => document.getElementById(id);
 
-function askPin() { $('pinbox').style.display = 'flex'; $('pin').value = ''; $('pin').focus(); }
+const pinOpen = () => $('pinbox').style.display === 'flex';
+function askPin(message) {
+  if (pinOpen()) return;              // already asking: never clear what is being typed
+  $('pinmsg').textContent = message || '';
+  $('pin').value = '';
+  $('pinbox').style.display = 'flex';
+  $('pin').focus();
+}
 $('pinok').onclick = () => {
-  pin = $('pin').value.trim();
+  const typed = $('pin').value.replace(/[^0-9]/g, '');
+  if (typed.length !== 4) { $('pinmsg').textContent = 'The PIN has 4 digits.'; return; }
+  pin = typed;
   try { localStorage.setItem('rugbycam.pin', pin); } catch (e) {}
   $('pinbox').style.display = 'none';
-  poll();
 };
 $('pin').addEventListener('keydown', e => { if (e.key === 'Enter') $('pinok').click(); });
 
 async function call(path) {
   const r = await fetch(path + (path.includes('?') ? '&' : '?') + 'pin=' + encodeURIComponent(pin), { cache: 'no-store' });
-  if (r.status === 403) { askPin(); throw new Error('pin'); }
+  if (r.status === 403) { askPin(pin ? 'That PIN is not right. Look again on the iPhone.' : ''); throw new Error('pin'); }
   return r;
 }
 
@@ -151,6 +162,7 @@ function drawBoxes() {
 }
 
 async function poll() {
+  if (!pin || pinOpen()) { setTimeout(poll, 500); return; }
   try {
     const r = await call('/status');
     show(await r.json());
@@ -164,7 +176,7 @@ async function poll() {
 
 let imgURL = null;
 async function frames() {
-  if ($('pinbox').style.display !== 'flex' && !document.hidden) {
+  if (pin && !pinOpen() && !document.hidden) {
     try {
       const r = await call('/frame.jpg');
       if (r.status === 200) {
