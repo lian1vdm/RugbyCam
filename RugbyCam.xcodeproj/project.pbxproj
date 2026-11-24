@@ -30,11 +30,13 @@
 		189228E47221F44268F03AA2 /* TrainingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0586D2A041F53E96CFE941D8 /* TrainingView.swift */; };
 		425DD74A4B0DF41E9FC61AAD /* HaishinKit in Frameworks */ = {isa = PBXBuildFile; productRef = ADAF893C67F0928DF52EE705 /* HaishinKit */; };
 		27FC8315F137215725FA7C97 /* RTMPHaishinKit in Frameworks */ = {isa = PBXBuildFile; productRef = A253C332F9EBCAE0CE67ACED /* RTMPHaishinKit */; };
+		04CD096E6F0373B070D7B1D2 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 82A6F39365F3D9DD04626662 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		B068619D3D469E68604AAC67 /* RugbyCam.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RugbyCam.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B4954BF7356E5B8852A7D998 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		82A6F39365F3D9DD04626662 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		91C42A42FB2A1709AC5B955E /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
 		7FEF2228AEC2B84D2D77B15D /* RugbyCamApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RugbyCamApp.swift; sourceTree = "<group>"; };
 		B7F0AE8AD25A7F13B9A4C05E /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
@@ -97,6 +99,7 @@
 				6CA6E20802627C28F1C97764 /* Tracking */,
 				DA4FEC2857A19D72D4DDB434 /* Training */,
 				678DE2E26BA548E362715026 /* UI */,
+				82A6F39365F3D9DD04626662 /* Assets.xcassets */,
 				B4954BF7356E5B8852A7D998 /* Info.plist */,
 			);
 			path = RugbyCam;
@@ -237,6 +240,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				04CD096E6F0373B070D7B1D2 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -320,6 +324,7 @@
 		997684C259E576261557CC27 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
@@ -345,6 +350,7 @@
 		AE44C0C9433C74236225FD8F /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";

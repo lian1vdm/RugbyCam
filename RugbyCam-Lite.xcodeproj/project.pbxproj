@@ -28,11 +28,13 @@
 		7E37208FDE481559C8824F80 /* OverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BD088C65DE3FC4C96EFA3C1 /* OverlayView.swift */; };
 		FA2D8F8A17D6AEB63BF0A2FD /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E92E4472AD0B842F3A06FC98 /* SettingsView.swift */; };
 		8FDA33461D1F648764969626 /* TrainingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 735414BF27EB7EF558A8FE32 /* TrainingView.swift */; };
+		5C27458F1B7732CBCAAA0076 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 221B83DD2544C1AF54B55E04 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		9DE0D3D7C52A9E42BF142F8D /* RugbyCam.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RugbyCam.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0660B1DCDF2C2CB6C239C3E2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		221B83DD2544C1AF54B55E04 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		483DE4D235C7DB79FC80EDEE /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
 		58346376EA9F300F635FCEB9 /* RugbyCamApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RugbyCamApp.swift; sourceTree = "<group>"; };
 		D349839E9DC54078AC3CF840 /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
@@ -93,6 +95,7 @@
 				F861239F99E83E430F0C6A4A /* Tracking */,
 				BE0A4A82EEC8414272752D7B /* Training */,
 				5ACD97EA599B2DAC7B256807 /* UI */,
+				221B83DD2544C1AF54B55E04 /* Assets.xcassets */,
 				0660B1DCDF2C2CB6C239C3E2 /* Info.plist */,
 			);
 			path = RugbyCam;
@@ -226,6 +229,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5C27458F1B7732CBCAAA0076 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -309,6 +313,7 @@
 		3EB92488B6D26B1021BCF517 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
@@ -334,6 +339,7 @@
 		4E49C02C0A4D8B56F8DDA6BF /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "";
