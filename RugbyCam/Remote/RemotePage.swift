@@ -49,6 +49,30 @@ input { -webkit-user-select:text; user-select:text; }
 #pinmsg { color:var(--gold); font-size:14px; min-height:18px; margin-bottom:10px; }
 #pinbox input { font:inherit; font-size:32px; letter-spacing:12px; width:100%; text-align:center; margin:14px 0;
                 background:#000; color:var(--text); border:1px solid var(--line); border-radius:10px; padding:10px; }
+#setbtn { font-size:16px; padding:12px; }
+#sheet { position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; justify-content:flex-end; }
+#sheet .panel { width:min(520px,100%); height:100%; background:var(--bg); border-left:1px solid var(--line);
+                overflow-y:auto; -webkit-overflow-scrolling:touch; padding:16px 16px 40px; }
+#sheet .top { display:flex; justify-content:space-between; align-items:center; position:sticky; top:-16px;
+              background:var(--bg); padding:10px 0; z-index:2; }
+#sheet .top h2 { margin:0; font-size:20px; }
+#sheet .top button { width:auto; padding:10px 18px; font-size:16px; }
+#seterr { color:var(--gold); font-size:14px; min-height:18px; }
+.sec { margin:18px 0 6px; color:var(--dim); font-size:13px; text-transform:uppercase; letter-spacing:.06em; }
+.item { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-bottom:8px; }
+.item .head { display:flex; justify-content:space-between; gap:10px; align-items:center; }
+.item .val { color:var(--gold); font-variant-numeric:tabular-nums; }
+.item select, .item input[type=text] { font:inherit; color:var(--text); background:#000; border:1px solid var(--line);
+                                        border-radius:8px; padding:8px; max-width:60%; }
+.item input[type=text] { max-width:100%; width:100%; margin-top:8px; }
+.item.off { opacity:.45; pointer-events:none; }
+.switch { position:relative; width:52px; height:30px; flex:none; }
+.switch input { opacity:0; width:0; height:0; }
+.switch span { position:absolute; inset:0; background:#33443b; border-radius:30px; transition:.2s; }
+.switch span:before { content:""; position:absolute; width:24px; height:24px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.2s; }
+.switch input:checked + span { background:var(--green); }
+.switch input:checked + span:before { transform:translateX(22px); }
+.note { color:var(--dim); font-size:13px; margin-top:6px; }
 @media (max-width: 820px) { #app { flex-direction:column; height:auto; } #right { flex:none; } }
 </style>
 </head>
@@ -79,9 +103,15 @@ input { -webkit-user-select:text; user-select:text; }
       </div>
     </div>
     <button id="stream">Go live</button>
+    <button id="setbtn">⚙︎ Settings</button>
     <div id="conn">Connecting…</div>
   </div>
 </div>
+<div id="sheet"><div class="panel">
+  <div class="top"><h2>Settings</h2><button id="setclose">Done</button></div>
+  <div id="seterr"></div>
+  <div id="setlist"></div>
+</div></div>
 <div id="pinbox"><div class="box">
   <div>Enter the PIN shown on the iPhone<br><span style="color:var(--dim);font-size:13px">Settings › iPad remote</span></div>
   <input id="pin" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off">
@@ -198,6 +228,7 @@ async function cmd(name, value) {
   } catch (e) {}
 }
 
+
 $('rec').onclick = () => {
   if (last && last.recording && !confirm('Stop the recording?')) return;
   cmd('record');
@@ -218,6 +249,128 @@ $('zoom').addEventListener('input', () => {
 });
 $('zoom').addEventListener('change', () => { dragging = false; cmd('zoom', $('zoom').value); });
 window.addEventListener('resize', drawBoxes);
+
+// ---- Settings ----
+const FIELDS = [
+  ['Recording', [
+    { k:'quality', t:'Video quality', type:'select', opts:[['uhd60','4K 60'],['uhd30','4K 30'],['hd60','1080p 60']], noRec:true },
+    { k:'codec', t:'File format', type:'select', opts:[['hevc','HEVC (smaller files)'],['h264','H.264 (most compatible)']] },
+    { k:'saveToPhotos', t:'Save recordings to Photos', type:'bool' },
+    { k:'stabilisation', t:'Stabilise the picture', type:'bool', noRec:true },
+  ]],
+  ['Tracking', [
+    { k:'showOverlay', t:'Show what the tracking sees', type:'bool' },
+    { k:'lensStepsOnly', t:'Only use the real lenses (0.5x, 1x, 2x, tele)', type:'bool' },
+    { k:'autoZoomMinDisplay', t:'Widest auto zoom', type:'range', min:0.5, max:4, step:0.5, fmt:v=>v+'x' },
+    { k:'autoZoomMaxDisplay', t:'Tightest auto zoom', type:'range', min:1, max:15, step:0.5, fmt:v=>v+'x' },
+    { k:'zoomTightness', t:'How tightly to frame the players', type:'range', min:0.35, max:0.8, step:0.01, fmt:v=>Math.round(v*100)+' %' },
+    { k:'followSpeed', t:'How eagerly the mount follows', type:'range', min:0.3, max:3, step:0.05, fmt:v=>(+v).toFixed(2) },
+    { k:'detectionRate', t:'Looks per second', type:'range', min:4, max:30, step:1, fmt:v=>Math.round(v) },
+    { k:'ballConfidence', t:'Weakest ball detection to accept', type:'range', min:0.05, max:0.6, step:0.01, fmt:v=>(+v).toFixed(2) },
+    { k:'searchZoom', t:'Ball search zoom', type:'range', min:1, max:4, step:0.1, fmt:v=>(+v).toFixed(1)+'x' },
+  ]],
+  ['Mount', [
+    { type:'mount' },
+    { k:'tiltEnabled', t:'Allow tilting up and down', type:'bool' },
+    { k:'invertPan', t:'Reverse left and right', type:'bool' },
+    { k:'invertTilt', t:'Reverse up and down', type:'bool' },
+  ]],
+  ['Training', [
+    { k:'saveHardFrames', t:'While recording, save moments the ball is lost', type:'bool' },
+    { k:'importKeep', t:'Pictures to keep per imported video', type:'range', min:20, max:200, step:10, fmt:v=>Math.round(v) },
+    { type:'model' },
+  ]],
+  ['Live stream', [
+    { k:'streamURL', t:'Stream address', type:'text' },
+    { k:'streamResolution', t:'Stream size', type:'select', opts:[['p720','720p'],['p1080','1080p'],['p1440','1440p'],['p2160','4K']] },
+    { k:'streamFPS', t:'Stream frames per second', type:'select', opts:[['30','30'],['60','60']] },
+    { k:'streamBitrateMbps', t:'Stream quality', type:'range', min:2, max:40, step:0.5, fmt:v=>(+v).toFixed(1)+' Mbit/s' },
+    { type:'note', t:'The stream key can only be entered on the iPhone. Stream changes apply the next time you go live.' },
+  ]],
+];
+let S = null, editing = null;
+
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
+
+function buildSettings() {
+  const list = $('setlist'); list.innerHTML = '';
+  for (const [title, items] of FIELDS) {
+    list.appendChild(el('div', 'sec', title));
+    for (const f of items) {
+      const box = el('div', 'item');
+      if (f.type === 'note') { box.appendChild(el('div', 'note', f.t)); list.appendChild(box); continue; }
+      if (f.type === 'mount') {
+        const head = el('div', 'head'); head.appendChild(el('span', '', 'Status')); head.appendChild(el('span', 'val', S._mount));
+        box.appendChild(head);
+        const b = el('button', '', S._mountIdle ? 'Connect to the XbotGo mount' : 'Disconnect');
+        b.style.marginTop = '10px';
+        b.onclick = () => cmd(S._mountIdle ? 'mountConnect' : 'mountDisconnect').then(loadSettings);
+        box.appendChild(b); list.appendChild(box); continue;
+      }
+      if (f.type === 'model') {
+        box.appendChild(el('div', '', 'Ball model'));
+        box.appendChild(el('div', 'note', S._ballModel || ''));
+        const b = el('button', '', 'Look for model files again'); b.style.marginTop = '10px';
+        b.onclick = () => cmd('reloadModels').then(() => setTimeout(loadSettings, 1500));
+        box.appendChild(b); list.appendChild(box); continue;
+      }
+      const locked = f.noRec && S._recording;
+      if (locked) box.classList.add('off');
+      const head = el('div', 'head');
+      head.appendChild(el('span', '', f.t + (locked ? ' (stop recording first)' : '')));
+      const v = S[f.k];
+      if (f.type === 'bool') {
+        const lab = el('label', 'switch'); const inp = el('input'); inp.type = 'checkbox'; inp.checked = !!v;
+        inp.onchange = () => setValue(f.k, inp.checked ? 1 : 0);
+        lab.appendChild(inp); lab.appendChild(el('span')); head.appendChild(lab); box.appendChild(head);
+      } else if (f.type === 'select') {
+        const sel = el('select');
+        for (const [val, text] of f.opts) { const o = el('option', '', text); o.value = val; if (String(v) === val) o.selected = true; sel.appendChild(o); }
+        sel.onchange = () => setValue(f.k, sel.value);
+        head.appendChild(sel); box.appendChild(head);
+      } else if (f.type === 'range') {
+        const val = el('span', 'val', f.fmt(v)); head.appendChild(val); box.appendChild(head);
+        const inp = el('input'); inp.type = 'range'; inp.min = f.min; inp.max = f.max; inp.step = f.step; inp.value = v;
+        inp.oninput = () => { editing = f.k; val.textContent = f.fmt(inp.value); };
+        inp.onchange = () => { editing = null; setValue(f.k, inp.value); };
+        box.appendChild(inp);
+      } else if (f.type === 'text') {
+        box.appendChild(head);
+        const inp = el('input'); inp.type = 'text'; inp.value = v || ''; inp.autocapitalize = 'off'; inp.autocomplete = 'off'; inp.spellcheck = false;
+        inp.onfocus = () => { editing = f.k; };
+        inp.onchange = () => { editing = null; setValue(f.k, inp.value); };
+        inp.onblur = () => { editing = null; };
+        box.appendChild(inp);
+      }
+      list.appendChild(box);
+    }
+  }
+}
+
+function showSettings(r) {
+  S = r.settings;
+  $('seterr').textContent = r.error || '';
+  if (!editing) buildSettings();
+}
+
+async function loadSettings() {
+  try { showSettings(await (await call('/settings')).json()); } catch (e) {}
+}
+
+async function setValue(key, value) {
+  try { showSettings(await (await call('/set?key=' + encodeURIComponent(key) + '&v=' + encodeURIComponent(value))).json()); }
+  catch (e) { $('seterr').textContent = 'Could not reach the iPhone.'; }
+}
+
+let settingsTimer = null;
+$('setbtn').onclick = () => {
+  $('sheet').style.display = 'flex';
+  loadSettings();
+  clearInterval(settingsTimer);
+  settingsTimer = setInterval(() => { if (!editing) loadSettings(); }, 3000);
+};
+$('setclose').onclick = () => { $('sheet').style.display = 'none'; clearInterval(settingsTimer); editing = null; };
+$('sheet').addEventListener('click', e => { if (e.target === $('sheet')) $('setclose').click(); });
 
 if (!pin) askPin();
 poll();

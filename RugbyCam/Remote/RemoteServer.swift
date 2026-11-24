@@ -46,6 +46,10 @@ final class RemoteServer {
     var onCommand: ((String, Double?) -> Void)?
     /// Called on the main thread whenever a control panel asks for the status.
     var onClientSeen: (() -> Void)?
+    /// Called on the main thread: all settings as JSON.
+    var settingsProvider: (() -> Data)?
+    /// Called on the main thread to change one setting. Returns a problem, or nil.
+    var onSet: ((String, String) -> String?)?
     /// Called on the main thread when the server starts, stops or fails.
     var onStateChange: ((String?) -> Void)?
 
@@ -228,6 +232,10 @@ final class RemoteServer {
         case "/cmd":
             let value = query["v"].flatMap { Double($0) }
             sendStatus(on: connection, command: query["do"] ?? "", value: value)
+        case "/settings":
+            sendSettings(on: connection, key: nil, value: "")
+        case "/set":
+            sendSettings(on: connection, key: query["key"] ?? "", value: query["v"] ?? "")
         default:
             send(status: "404 Not Found", type: "text/plain", body: Data("not found".utf8), on: connection)
         }
@@ -241,6 +249,28 @@ final class RemoteServer {
             self.onClientSeen?()
             let status = self.statusProvider?() ?? RemoteStatus()
             let body = (try? JSONEncoder().encode(status)) ?? Data("{}".utf8)
+            self.queue.async {
+                self.send(status: "200 OK", type: "application/json", body: body, on: connection)
+            }
+        }
+    }
+
+    private func sendSettings(on connection: NWConnection, key: String?, value: String) {
+        DispatchQueue.main.async {
+            var problem: String?
+            if let key = key {
+                if let handler = self.onSet {
+                    problem = handler(key, value)
+                } else {
+                    problem = "Settings cannot be changed right now."
+                }
+            }
+            self.onClientSeen?()
+            var body = Data("{\"settings\":".utf8)
+            body.append(self.settingsProvider?() ?? Data("{}".utf8))
+            body.append(Data(",\"error\":".utf8))
+            body.append((try? JSONEncoder().encode(problem)) ?? Data("null".utf8))
+            body.append(Data("}".utf8))
             self.queue.async {
                 self.send(status: "200 OK", type: "application/json", body: body, on: connection)
             }

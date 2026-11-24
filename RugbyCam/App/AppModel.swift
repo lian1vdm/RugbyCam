@@ -108,6 +108,12 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
         remote.onCommand = { [weak self] command, value in
             self?.remoteCommand(command, value)
         }
+        remote.settingsProvider = { [weak self] in
+            return self?.remoteSettingsJSON() ?? Data("{}".utf8)
+        }
+        remote.onSet = { [weak self] key, value in
+            return self?.remoteSet(key, value) ?? "The app is closing."
+        }
         remote.onClientSeen = { [weak self] in
             self?.remoteSeen()
         }
@@ -558,9 +564,76 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
             if let factor = value, factor > 0.1, factor < 10.0 {
                 userZoom(to: zoom * factor, glide: true)
             }
+        case "mountConnect":
+            connectMount()
+        case "mountDisconnect":
+            disconnectMount()
+        case "reloadModels":
+            reloadModels()
         default:
             break
         }
+    }
+
+    // Settings the iPad may change, with the same limits as the sliders on the iPhone.
+    private static let remoteBools: Set<String> = [
+        "saveToPhotos", "stabilisation", "showOverlay", "lensStepsOnly", "tiltEnabled",
+        "invertPan", "invertTilt", "saveHardFrames"
+    ]
+    private static let remoteNumbers: [String: ClosedRange<Double>] = [
+        "autoZoomMinDisplay": 0.5...4.0, "autoZoomMaxDisplay": 1.0...15.0,
+        "zoomTightness": 0.35...0.80, "followSpeed": 0.3...3.0, "detectionRate": 4.0...30.0,
+        "ballConfidence": 0.05...0.60, "searchZoom": 1.0...4.0, "importEvery": 0.5...5.0,
+        "streamBitrateMbps": 2.0...40.0
+    ]
+    private static let remoteInts: [String: ClosedRange<Int>] = [
+        "importKeep": 20...200, "streamFPS": 30...60
+    ]
+    private static let remoteTexts: Set<String> = ["quality", "codec", "streamResolution", "streamURL"]
+
+    private func remoteSettingsJSON() -> Data {
+        guard let data = try? JSONEncoder().encode(settings),
+              var dict = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else {
+            return Data("{}".utf8)
+        }
+        dict["_recording"] = isRecording
+        dict["_mount"] = mountState.label
+        dict["_mountIdle"] = mountState == .idle
+        dict["_ballModel"] = ballModelStatus
+        dict["_device"] = cameraInfo.deviceName
+        return (try? JSONSerialization.data(withJSONObject: dict)) ?? Data("{}".utf8)
+    }
+
+    /// Changes one setting from the iPad. Returns a problem, or nil when it worked.
+    private func remoteSet(_ key: String, _ raw: String) -> String? {
+        if isRecording && (key == "quality" || key == "stabilisation") {
+            return "Stop the recording first to change this."
+        }
+        guard let data = try? JSONEncoder().encode(settings),
+              var dict = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else {
+            return "The settings could not be read."
+        }
+        if AppModel.remoteBools.contains(key) {
+            dict[key] = raw == "1" || raw == "true"
+        } else if let range = AppModel.remoteNumbers[key] {
+            guard let number = Double(raw), number.isFinite else { return "Not a number." }
+            dict[key] = min(max(number, range.lowerBound), range.upperBound)
+        } else if let range = AppModel.remoteInts[key] {
+            guard let number = Double(raw), number.isFinite else { return "Not a number." }
+            dict[key] = min(max(Int(number.rounded()), range.lowerBound), range.upperBound)
+        } else if AppModel.remoteTexts.contains(key) {
+            dict[key] = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        } else {
+            return "This setting can only be changed on the iPhone."
+        }
+        guard let newData = try? JSONSerialization.data(withJSONObject: dict),
+              let changed = try? JSONDecoder().decode(AppSettings.self, from: newData) else {
+            return "That value is not allowed."
+        }
+        if changed != settings {
+            settings = changed
+        }
+        return nil
     }
 
     private func remoteStatus() -> RemoteStatus {
