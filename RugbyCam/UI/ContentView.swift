@@ -66,6 +66,9 @@ struct ContentView: View {
             if model.isHot {
                 Chip(text: "Phone is hot", systemImage: "thermometer.high", tint: .orange)
             }
+            if model.remoteConnected {
+                Chip(text: "iPad", systemImage: "ipad.landscape", tint: .green)
+            }
             Spacer(minLength: 0)
         }
     }

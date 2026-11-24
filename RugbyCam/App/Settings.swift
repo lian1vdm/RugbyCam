@@ -115,6 +115,9 @@ struct AppSettings: Codable, Equatable {
     var importEvery = 1.0             // seconds between two looks when importing a video
     var importKeep = 60               // pictures kept per imported video
 
+    // iPad remote
+    var remoteEnabled = false
+
     // Streaming
     var streamURL = "rtmp://a.rtmp.youtube.com/live2"
     var streamResolution = StreamResolution.p1080

@@ -15,6 +15,8 @@
 		768A3DA51EA2270159C7FEEE /* Recorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B34B4387C651AF176D63212 /* Recorder.swift */; };
 		5452C3A05A526CCE4702DEE6 /* ChameleonProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71FBF009EF9B5029DBB555DA /* ChameleonProtocol.swift */; };
 		3CCA229AD63548D2415443CE /* MountController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 328FCC02F7F804F80AEACE6F /* MountController.swift */; };
+		899F97824B6D081653FD4CF8 /* RemotePage.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8B50E7DE6029BA306841E74 /* RemotePage.swift */; };
+		79BC860660A67D052552C169 /* RemoteServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE7CAC961645A3701068697E /* RemoteServer.swift */; };
 		45CBF190B86622F0BA93E5E5 /* HaishinStreamer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12DBF63519D472E8B2BCAC0F /* HaishinStreamer.swift */; };
 		D06A4CB19C1541372C3F2F4E /* LiveStreamer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23982CAAB2E5FE4F7BBFEFC6 /* LiveStreamer.swift */; };
 		2AD8A84A1BBF9B8CDCA49070 /* BallTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB78DCB543D7FEA9393E111C /* BallTracker.swift */; };
@@ -43,6 +45,8 @@
 		7B34B4387C651AF176D63212 /* Recorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Recorder.swift; sourceTree = "<group>"; };
 		71FBF009EF9B5029DBB555DA /* ChameleonProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChameleonProtocol.swift; sourceTree = "<group>"; };
 		328FCC02F7F804F80AEACE6F /* MountController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MountController.swift; sourceTree = "<group>"; };
+		F8B50E7DE6029BA306841E74 /* RemotePage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemotePage.swift; sourceTree = "<group>"; };
+		BE7CAC961645A3701068697E /* RemoteServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteServer.swift; sourceTree = "<group>"; };
 		12DBF63519D472E8B2BCAC0F /* HaishinStreamer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HaishinStreamer.swift; sourceTree = "<group>"; };
 		23982CAAB2E5FE4F7BBFEFC6 /* LiveStreamer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveStreamer.swift; sourceTree = "<group>"; };
 		DB78DCB543D7FEA9393E111C /* BallTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BallTracker.swift; sourceTree = "<group>"; };
@@ -91,6 +95,7 @@
 				44F383F66BFF8B0C48301CF5 /* App */,
 				6C159BDB77F1A131471171E4 /* Camera */,
 				B0B7A89402AE941D15B55C3E /* Mount */,
+				4B376840E8AB203AFE74462B /* Remote */,
 				B5DDD011817B9A98E072DB07 /* Stream */,
 				F861239F99E83E430F0C6A4A /* Tracking */,
 				BE0A4A82EEC8414272752D7B /* Training */,
@@ -128,6 +133,15 @@
 				328FCC02F7F804F80AEACE6F /* MountController.swift */,
 			);
 			path = Mount;
+			sourceTree = "<group>";
+		};
+		4B376840E8AB203AFE74462B /* Remote */ = {
+			isa = PBXGroup;
+			children = (
+				F8B50E7DE6029BA306841E74 /* RemotePage.swift */,
+				BE7CAC961645A3701068697E /* RemoteServer.swift */,
+			);
+			path = Remote;
 			sourceTree = "<group>";
 		};
 		B5DDD011817B9A98E072DB07 /* Stream */ = {
@@ -248,6 +262,8 @@
 				768A3DA51EA2270159C7FEEE /* Recorder.swift in Sources */,
 				5452C3A05A526CCE4702DEE6 /* ChameleonProtocol.swift in Sources */,
 				3CCA229AD63548D2415443CE /* MountController.swift in Sources */,
+				899F97824B6D081653FD4CF8 /* RemotePage.swift in Sources */,
+				79BC860660A67D052552C169 /* RemoteServer.swift in Sources */,
 				45CBF190B86622F0BA93E5E5 /* HaishinStreamer.swift in Sources */,
 				D06A4CB19C1541372C3F2F4E /* LiveStreamer.swift in Sources */,
 				2AD8A84A1BBF9B8CDCA49070 /* BallTracker.swift in Sources */,

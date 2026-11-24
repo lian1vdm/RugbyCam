@@ -12,6 +12,7 @@ struct SettingsView: View {
                 modelSection
                 trainingSection
                 mountSection
+                remoteSection
                 streamSection
                 aboutSection
             }
@@ -190,6 +191,49 @@ struct SettingsView: View {
             Text("Mount")
         } footer: {
             Text("Close the XbotGo app first: the mount accepts one connection at a time. Until the mount's move commands are added to the app, RugbyCam only listens to the mount and does not turn it (tripod mode).")
+        }
+    }
+
+    // MARK: - iPad remote
+
+    private var remoteSection: some View {
+        Section {
+            Toggle("Allow control from an iPad", isOn: $model.settings.remoteEnabled)
+            if model.settings.remoteEnabled {
+                let addresses = model.remoteAddresses
+                if addresses.isEmpty {
+                    Text("No Wi-Fi or hotspot yet. Connect the iPhone to Wi-Fi, or turn on Personal Hotspot and connect the iPad to it.")
+                        .foregroundColor(.orange)
+                } else {
+                    ForEach(addresses, id: \.self) { address in
+                        Text(address)
+                            .font(.system(.body, design: .monospaced))
+                            .textSelection(.enabled)
+                    }
+                }
+                HStack {
+                    Text("PIN")
+                    Spacer()
+                    Text(model.remotePin)
+                        .font(.system(.title3, design: .monospaced).weight(.bold))
+                }
+                Button("Make a new PIN") {
+                    model.newRemotePin()
+                }
+                HStack {
+                    Text("iPad")
+                    Spacer()
+                    Text(model.remoteConnected ? "Connected" : "Not connected")
+                        .foregroundColor(model.remoteConnected ? .green : .secondary)
+                }
+                if let problem = model.remoteProblem {
+                    Text(problem).foregroundColor(.orange)
+                }
+            }
+        } header: {
+            Text("iPad remote")
+        } footer: {
+            Text("Put the iPad on the same Wi-Fi as the iPhone. On the pitch, turn on the iPhone's Personal Hotspot and join it with the iPad (Hotspot address). Open the address above in Safari on the iPad and enter the PIN. Tip: Share > Add to Home Screen makes it an icon. Keep RugbyCam open on the iPhone.")
         }
     }
 

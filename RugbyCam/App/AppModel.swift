@@ -45,11 +45,16 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
     @Published var notice: String?
     @Published var mountLog: [String] = []
     @Published var isHot = false
+    @Published var remoteConnected = false     // an iPad looked at the control panel in the last few seconds
+    @Published var remoteProblem: String?
+    @Published var remotePin = ""
 
     // MARK: - Parts
 
     let camera = CameraEngine()
     let training = TrainingStore()
+    private let remote = RemoteServer()
+    private var remoteSeenWork: DispatchWorkItem?
     private lazy var recorder = Recorder(queue: camera.captureQueue)
     private let tracking = TrackingEngine()
     private let mount = MountController()
@@ -96,6 +101,19 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
         tracking.onResult = { [weak self] snapshot, command in
             self?.apply(snapshot, command)
         }
+        remotePin = remote.pin
+        remote.statusProvider = { [weak self] in
+            return self?.remoteStatus() ?? RemoteStatus()
+        }
+        remote.onCommand = { [weak self] command, value in
+            self?.remoteCommand(command, value)
+        }
+        remote.onClientSeen = { [weak self] in
+            self?.remoteSeen()
+        }
+        remote.onStateChange = { [weak self] problem in
+            self?.remoteProblem = problem
+        }
 
         let center = NotificationCenter.default
         observers.append(center.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main) { [weak self] _ in
@@ -122,7 +140,11 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
         guard !started else { return }
         started = true
         UIApplication.shared.isIdleTimerDisabled = true
+        UIDevice.current.isBatteryMonitoringEnabled = true
         updateHeat()
+        if settings.remoteEnabled {
+            remote.start()
+        }
         reloadModels()
         AVCaptureDevice.requestAccess(for: .video) { [weak self] allowed in
             guard allowed else {
@@ -183,6 +205,14 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
                 show("The new video setting applies when this recording ends.")
             } else {
                 configureCamera()
+            }
+        }
+        if old.remoteEnabled != settings.remoteEnabled {
+            if settings.remoteEnabled {
+                remote.start()
+            } else {
+                remote.stop()
+                remoteConnected = false
             }
         }
         pushTrackingConfig()
@@ -487,6 +517,88 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
         camera.start()
     }
 
+    // MARK: - iPad remote
+
+    var remoteAddresses: [String] {
+        return RemoteServer.addresses()
+    }
+
+    func newRemotePin() {
+        remote.newPin()
+        remotePin = remote.pin
+    }
+
+    private func remoteSeen() {
+        if !remoteConnected {
+            remoteConnected = true
+        }
+        remoteSeenWork?.cancel()
+        let work = DispatchWorkItem { [weak self] in
+            self?.remoteConnected = false
+        }
+        remoteSeenWork = work
+        DispatchQueue.main.asyncAfter(deadline: .now() + 4.0, execute: work)
+    }
+
+    private func remoteCommand(_ command: String, _ value: Double?) {
+        switch command {
+        case "record":
+            toggleRecording()
+        case "follow":
+            setFollow((value ?? 1.0) > 0.5)
+        case "autozoom":
+            setAutoZoom((value ?? 1.0) > 0.5)
+        case "stream":
+            toggleStream()
+        case "zoom":
+            if let position = value {
+                setZoomSliderPosition(position)
+            }
+        case "zoomstep":
+            if let factor = value, factor > 0.1, factor < 10.0 {
+                userZoom(to: zoom * factor, glide: true)
+            }
+        default:
+            break
+        }
+    }
+
+    private func remoteStatus() -> RemoteStatus {
+        var status = RemoteStatus()
+        status.recording = isRecording
+        status.recordingTime = recordingTimeText
+        status.follow = followEnabled
+        status.autoZoom = autoZoomEnabled
+        status.zoomText = zoomText
+        status.zoomPosition = zoomSliderPosition
+        status.streamAvailable = streamer.isAvailable
+        status.streamOn = streamState.wantsFrames
+        status.streamText = streamState.label
+        let device = UIDevice.current
+        if device.batteryLevel >= 0 {
+            status.battery = Int((device.batteryLevel * 100.0).rounded())
+        }
+        status.charging = device.batteryState == .charging || device.batteryState == .full
+        status.hot = isHot
+        status.freeSpace = freeSpaceText
+        if cameraInfo.width > 0 {
+            status.camera = "\(cameraInfo.width)x\(cameraInfo.height) · \(captureFPS) fps"
+            if droppedFrames > 0 {
+                status.camera += " · \(droppedFrames) dropped"
+            }
+        }
+        status.cameraPaused = settingsOpen && !isRecording && !streamState.wantsFrames
+        status.tracking = trackingText
+        status.mount = mountState.label
+        status.notice = notice
+        if let ball = snapshot.ball {
+            status.ball = [ball.x, ball.y, ball.w, ball.h]
+        }
+        status.ballConfirmed = snapshot.ballConfirmed
+        status.players = snapshot.players.map { [$0.x, $0.y, $0.w, $0.h] }
+        return status
+    }
+
     // MARK: - Mount
 
     func connectMount() {
@@ -522,6 +634,7 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
         let zoomNow = engine.currentZoom
         if let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) {
             tracking.offer(pixelBuffer, time: time, zoom: zoomNow, captureQueue: engine.captureQueue)
+            remote.offerFrame(pixelBuffer)
         }
 
         frameCount += 1

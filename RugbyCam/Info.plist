@@ -35,7 +35,7 @@
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>RugbyCam saves your recordings to the Photos library.</string>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>RugbyCam can send the live stream to a computer on your network.</string>
+	<string>RugbyCam lets your iPad control the camera and can send the live stream to a computer on your network.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
