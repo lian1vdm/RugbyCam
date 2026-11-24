@@ -56,6 +56,7 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
     private let streamer: LiveStreamer = Streamers.make()
 
     private var started = false
+    private var settingsOpen = false
     private var clock: Timer?
     private var noticeWork: DispatchWorkItem?
     private var observers: [NSObjectProtocol] = []
@@ -101,7 +102,7 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
             self?.enteredBackground()
         })
         observers.append(center.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main) { [weak self] _ in
-            self?.camera.start()
+            self?.resumeCamera()
         })
         observers.append(center.addObserver(forName: ProcessInfo.thermalStateDidChangeNotification, object: nil, queue: .main) { [weak self] _ in
             self?.updateHeat()
@@ -155,7 +156,7 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
                         self.show("This camera does not offer \(wanted.label), so it is using \(info.width)x\(info.height) at \(info.fps) fps.")
                     }
                     self.pushTrackingConfig()
-                    self.camera.start()
+                    self.resumeCamera()
                 case .failure(let error):
                     self.cameraProblem = error.localizedDescription
                 }
@@ -348,6 +349,7 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
 
     private func recordingEnded() {
         isRecording = false
+        pauseCameraIfIdle()
         pushTrackingConfig()
         clock?.invalidate()
         clock = nil
@@ -448,6 +450,41 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
         if case .failed(let reason) = state {
             show("Stream failed: \(reason)")
         }
+        if !state.wantsFrames {
+            pauseCameraIfIdle()
+        }
+    }
+
+    // MARK: - Camera while the settings are open
+
+    /// The settings cover the camera picture, so the camera is switched off to
+    /// save the battery, unless it is recording or streaming.
+    func settingsOpened() {
+        settingsOpen = true
+        pauseCameraIfIdle()
+    }
+
+    func settingsClosed() {
+        settingsOpen = false
+        resumeCamera()
+    }
+
+    private var cameraIdle: Bool {
+        return !isRecording && !streamState.wantsFrames
+    }
+
+    private func pauseCameraIfIdle() {
+        guard settingsOpen, cameraIdle else { return }
+        camera.stop()
+        mount.stopMotion()
+    }
+
+    private func resumeCamera() {
+        guard cameraInfo.width > 0 else { return }
+        if settingsOpen && cameraIdle {
+            return
+        }
+        camera.start()
     }
 
     // MARK: - Mount

@@ -27,9 +27,11 @@ struct SettingsView: View {
         }
         .onAppear {
             OrientationLock.allowUpright()
+            model.settingsOpened()
         }
         .onDisappear {
             OrientationLock.cameraOnly()
+            model.settingsClosed()
         }
     }
 
