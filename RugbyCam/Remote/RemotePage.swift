@@ -50,6 +50,23 @@ input { -webkit-user-select:text; user-select:text; }
 #pinbox input { font:inherit; font-size:32px; letter-spacing:12px; width:100%; text-align:center; margin:14px 0;
                 background:#000; color:var(--text); border:1px solid var(--line); border-radius:10px; padding:10px; }
 #setbtn { font-size:16px; padding:12px; }
+.pad { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+.pad button { padding:14px 0; font-size:22px; touch-action:none; -webkit-touch-callout:none; }
+.pad button.held { background:var(--gold); color:#000; }
+.pad .mid { display:flex; align-items:center; justify-content:center; color:var(--dim); font-size:12px; text-align:center; }
+#score { display:grid; grid-template-columns:1fr auto 1fr; gap:12px; align-items:start; }
+.team { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:12px; }
+.team input { font:inherit; font-weight:700; color:var(--text); background:transparent; border:none; border-bottom:1px solid var(--line);
+              width:100%; padding:4px 0; font-size:17px; }
+.team .pts { font-size:46px; font-weight:800; font-variant-numeric:tabular-nums; margin:6px 0; }
+.team.home .pts { color:var(--gold); }
+.team.away .pts { color:var(--green); }
+.team .btns { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
+.team .btns button { padding:10px 0; font-size:14px; }
+.clock { text-align:center; padding-top:10px; }
+.clock .t { font-size:30px; font-weight:800; font-variant-numeric:tabular-nums; }
+.clock button { padding:8px 10px; font-size:13px; margin-top:8px; }
+.clock button.on { background:var(--green); border-color:var(--green); color:#04140b; }
 #sheet { position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; justify-content:flex-end; }
 #sheet .panel { width:min(520px,100%); height:100%; background:var(--bg); border-left:1px solid var(--line);
                 overflow-y:auto; -webkit-overflow-scrolling:touch; padding:16px 16px 40px; }
@@ -87,6 +104,31 @@ input { -webkit-user-select:text; user-select:text; }
     <div id="chips"></div>
     <div id="tracking"></div>
     <div id="notice"></div>
+    <div id="score">
+      <div class="team home">
+        <input id="homeName" maxlength="16" autocomplete="off">
+        <div class="pts" id="homeScore">0</div>
+        <div class="btns">
+          <button data-team="Home" data-p="5">Try +5</button><button data-team="Home" data-p="2">Conv +2</button>
+          <button data-team="Home" data-p="3">Pen +3</button><button data-team="Home" data-p="-1">−1</button>
+        </div>
+      </div>
+      <div class="clock">
+        <div class="t" id="gameTime">00:00</div>
+        <div id="periodText" style="color:var(--dim);font-size:13px">1st half</div>
+        <button id="periodBtn">Change half</button><br>
+        <button id="inVideo">Scoreboard in video</button><br>
+        <button id="scoreReset">Reset score</button>
+      </div>
+      <div class="team away">
+        <input id="awayName" maxlength="16" autocomplete="off">
+        <div class="pts" id="awayScore">0</div>
+        <div class="btns">
+          <button data-team="Away" data-p="5">Try +5</button><button data-team="Away" data-p="2">Conv +2</button>
+          <button data-team="Away" data-p="3">Pen +3</button><button data-team="Away" data-p="-1">−1</button>
+        </div>
+      </div>
+    </div>
   </div>
   <div id="right">
     <button id="rec">Record</button>
@@ -100,6 +142,14 @@ input { -webkit-user-select:text; user-select:text; }
       <div class="row" style="margin-top:8px">
         <button id="zout">−</button>
         <button id="zin">+</button>
+      </div>
+    </div>
+    <div class="box">
+      <div class="label"><span>Turn the mount</span><span id="mountState"></span></div>
+      <div class="pad">
+        <span></span><button data-move="tilt" data-v="-1">▲</button><span></span>
+        <button data-move="pan" data-v="-1">◀</button><span class="mid">hold</span><button data-move="pan" data-v="1">▶</button>
+        <span></span><button data-move="tilt" data-v="1">▼</button><span></span>
       </div>
     </div>
     <button id="stream">Go live</button>
@@ -170,6 +220,15 @@ function show(s) {
   if (s.camera) c.appendChild(chip(s.camera));
   if (s.mount) c.appendChild(chip(s.mount));
   $('tracking').textContent = s.tracking;
+  $('mountState').textContent = s.mountReady ? 'ready' : 'not linked';
+  $('homeScore').textContent = s.homeScore;
+  $('awayScore').textContent = s.awayScore;
+  if (document.activeElement !== $('homeName')) $('homeName').value = s.home;
+  if (document.activeElement !== $('awayName')) $('awayName').value = s.away;
+  $('gameTime').textContent = s.recording ? s.recordingTime : '00:00';
+  $('periodText').textContent = s.period === 2 ? '2nd half' : '1st half';
+  $('inVideo').classList.toggle('on', s.scoreInVideo);
+  $('inVideo').textContent = s.scoreInVideo ? 'Scoreboard in video: on' : 'Scoreboard in video: off';
   $('notice').textContent = s.notice || '';
   drawBoxes();
 }
@@ -250,6 +309,43 @@ $('zoom').addEventListener('input', () => {
 $('zoom').addEventListener('change', () => { dragging = false; cmd('zoom', $('zoom').value); });
 window.addEventListener('resize', drawBoxes);
 
+// ---- Mount arrows: hold to turn, let go to stop ----
+let moveTimer = null, moveBtn = null;
+function stopMove() {
+  if (!moveTimer) return;
+  clearInterval(moveTimer); moveTimer = null;
+  if (moveBtn) moveBtn.classList.remove('held');
+  moveBtn = null;
+  cmd('moveStop');
+}
+document.querySelectorAll('[data-move]').forEach(b => {
+  b.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    stopMove();
+    moveBtn = b; b.classList.add('held');
+    const send = () => call('/cmd?do=' + b.dataset.move + '&v=' + b.dataset.v).catch(() => {});
+    send();
+    moveTimer = setInterval(send, 120);
+    try { b.setPointerCapture(e.pointerId); } catch (x) {}
+  });
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(n => b.addEventListener(n, stopMove));
+  b.addEventListener('contextmenu', e => e.preventDefault());
+});
+window.addEventListener('blur', stopMove);
+document.addEventListener('visibilitychange', () => { if (document.hidden) stopMove(); });
+
+// ---- Scoreboard ----
+document.querySelectorAll('[data-team]').forEach(b => {
+  b.onclick = () => cmd('score' + b.dataset.team, b.dataset.p);
+});
+$('scoreReset').onclick = () => { if (confirm('Set both scores to 0?')) cmd('scoreReset'); };
+$('periodBtn').onclick = () => cmd('period', last && last.period === 2 ? 1 : 2);
+$('inVideo').onclick = () => cmd('scoreShow', last && last.scoreInVideo ? 0 : 1);
+for (const [id, key] of [['homeName', 'homeName'], ['awayName', 'awayName']]) {
+  $(id).addEventListener('change', () => call('/set?key=' + key + '&v=' + encodeURIComponent($(id).value)).catch(() => {}));
+  $(id).addEventListener('keydown', e => { if (e.key === 'Enter') $(id).blur(); });
+}
+
 // ---- Settings ----
 const FIELDS = [
   ['Recording', [
@@ -274,6 +370,7 @@ const FIELDS = [
     { k:'tiltEnabled', t:'Allow tilting up and down', type:'bool' },
     { k:'invertPan', t:'Reverse left and right', type:'bool' },
     { k:'invertTilt', t:'Reverse up and down', type:'bool' },
+    { k:'manualSpeed', t:'Arrow button speed', type:'range', min:0.1, max:1, step:0.05, fmt:v=>Math.round(v*100)+' %' },
   ]],
   ['Training', [
     { k:'saveHardFrames', t:'While recording, save moments the ball is lost', type:'bool' },

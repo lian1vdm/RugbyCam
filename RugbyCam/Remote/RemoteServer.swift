@@ -28,6 +28,13 @@ struct RemoteStatus: Encodable {
     var ball: [Double]?              // x, y, w, h (0...1)
     var ballConfirmed = false
     var players: [[Double]] = []
+    var mountReady = false
+    var home = ""
+    var away = ""
+    var homeScore = 0
+    var awayScore = 0
+    var period = 1
+    var scoreInVideo = false
 }
 
 /// A very small web server inside the app. An iPad (or any browser on the same

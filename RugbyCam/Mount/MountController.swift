@@ -36,8 +36,9 @@ enum MountState: Equatable {
 }
 
 /// Talks to the XbotGo Chameleon over Bluetooth.
-/// It always listens to what the mount sends. It only writes when
-/// ChameleonProtocol.isReady is true.
+/// While the mount should turn, a move message is sent about 30 times a second,
+/// like the XbotGo app does. When nothing asks for movement (or the app stalls),
+/// the messages stop and the mount stops by itself within a quarter second.
 final class MountController: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate {
     /// Both are called on the mount's own queue.
     var onStateChange: ((MountState) -> Void)?
@@ -56,9 +57,15 @@ final class MountController: NSObject, CBCentralManagerDelegate, CBPeripheralDel
     private var pickScheduled = false
     private var state = MountState.idle
     private var moving = false
-    private var lastCommandTime = 0.0
-    private var lastWriteTime = 0.0
-    private var watchdog: DispatchSourceTimer?
+    // What the tracking asks for, and when it last asked.
+    private var trackPan = 0.0
+    private var trackTilt = 0.0
+    private var trackTime = -1.0e9
+    // Arrow buttons (iPhone or iPad). They win over the tracking while held.
+    private var manualPan = 0.0
+    private var manualTilt = 0.0
+    private var manualUntil = -1.0e9
+    private var sender: DispatchSourceTimer?
     private var lastLogLine = ""
     private var lastLogTime = 0.0
 
@@ -100,28 +107,31 @@ final class MountController: NSObject, CBCentralManagerDelegate, CBPeripheralDel
         disconnect()
     }
 
-    /// Asks the mount to turn. Both values are -1...1. Does nothing in tripod mode.
+    /// What the tracking wants. Both values are -1...1 (+pan = right, +tilt = down).
+    /// Must be repeated: after 0.6 s without a new value the mount stops.
     func setVelocity(pan: Double, tilt: Double) {
         queue.async {
-            guard self.commands.isReady, self.state.canMove else { return }
-            let now = ProcessInfo.processInfo.systemUptime
-            self.lastCommandTime = now
-            if abs(pan) < 0.01 && abs(tilt) < 0.01 {
-                if self.moving {
-                    self.sendStop()
-                }
-                return
-            }
-            // Twenty messages a second is plenty for a motor.
-            guard now - self.lastWriteTime >= 0.05 else { return }
-            self.lastWriteTime = now
-            self.moving = true
-            self.write(self.commands.velocity(pan: pan, tilt: tilt))
+            self.trackPan = pan
+            self.trackTilt = tilt
+            self.trackTime = ProcessInfo.processInfo.systemUptime
+        }
+    }
+
+    /// Arrow buttons. Moves for `hold` seconds unless repeated; beats the tracking.
+    func setManual(pan: Double, tilt: Double, hold: Double) {
+        queue.async {
+            self.manualPan = pan
+            self.manualTilt = tilt
+            let stopping = abs(pan) < 0.001 && abs(tilt) < 0.001
+            self.manualUntil = ProcessInfo.processInfo.systemUptime + (stopping ? 0.0 : hold)
         }
     }
 
     func stopMotion() {
         queue.async {
+            self.trackPan = 0.0
+            self.trackTilt = 0.0
+            self.manualUntil = -1.0e9
             self.sendStop()
         }
     }
@@ -207,8 +217,8 @@ final class MountController: NSObject, CBCentralManagerDelegate, CBPeripheralDel
     }
 
     private func dropLink() {
-        watchdog?.cancel()
-        watchdog = nil
+        sender?.cancel()
+        sender = nil
         peripheral = nil
         characteristics = [:]
         candidates = []
@@ -229,7 +239,6 @@ final class MountController: NSObject, CBCentralManagerDelegate, CBPeripheralDel
         log("Linked to \(deviceName)")
         setState(.connected(deviceName))
         peripheral.discoverServices(nil)
-        startWatchdog()
     }
 
     func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
@@ -280,6 +289,8 @@ final class MountController: NSObject, CBCentralManagerDelegate, CBPeripheralDel
         }
         write(commands.handshake())
         setState(.ready(deviceName))
+        log("Mount ready: RugbyCam can turn it now")
+        startSender()
     }
 
     // MARK: - Writing
@@ -297,23 +308,45 @@ final class MountController: NSObject, CBCentralManagerDelegate, CBPeripheralDel
                 continue
             }
             let withoutResponse = characteristic.properties.contains(.writeWithoutResponse)
+            if withoutResponse && !linked.canSendWriteWithoutResponse {
+                continue    // Bluetooth is busy; the next tick sends a fresh message
+            }
             linked.writeValue(frame.data, for: characteristic, type: withoutResponse ? .withoutResponse : .withResponse)
         }
     }
 
-    /// Safety net: if the app stops sending commands (a crash, a stall), stop the motors.
-    private func startWatchdog() {
-        watchdog?.cancel()
+    /// Sends the move messages about 30 times a second, like the XbotGo app.
+    /// If nothing asks for movement any more, it sends nothing and the mount stops.
+    private func startSender() {
+        sender?.cancel()
         let timer = DispatchSource.makeTimerSource(queue: queue)
-        timer.schedule(deadline: .now() + 0.25, repeating: 0.25)
+        timer.schedule(deadline: .now() + 0.033, repeating: 0.033, leeway: .milliseconds(3))
         timer.setEventHandler { [weak self] in
-            guard let self = self, self.moving else { return }
-            if ProcessInfo.processInfo.systemUptime - self.lastCommandTime > 0.6 {
-                self.sendStop()
-            }
+            self?.tick()
         }
         timer.resume()
-        watchdog = timer
+        sender = timer
+    }
+
+    private func tick() {
+        guard commands.isReady, state.canMove, peripheral != nil else { return }
+        let now = ProcessInfo.processInfo.systemUptime
+        var pan = 0.0
+        var tilt = 0.0
+        if now < manualUntil {
+            pan = manualPan
+            tilt = manualTilt
+        } else if now - trackTime < 0.6 {
+            pan = trackPan
+            tilt = trackTilt
+        }
+        let frames = commands.velocity(pan: pan, tilt: tilt)
+        if frames.isEmpty {
+            moving = false
+            return
+        }
+        moving = true
+        write(frames)
     }
 
     // MARK: - Log

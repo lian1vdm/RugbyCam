@@ -4,6 +4,7 @@ import SwiftUI
 struct ContentView: View {
     @EnvironmentObject var model: AppModel
     @State private var showSettings = false
+    @State private var showScoreboard = false
 
     var body: some View {
         ZStack {
@@ -27,13 +28,26 @@ struct ContentView: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
             HStack {
+                MountPad()
                 Spacer(minLength: 0)
                 sideButtons
             }
+            .padding(.leading, 14)
             .padding(.trailing, 14)
+            VStack {
+                ScoreChip {
+                    showScoreboard = true
+                }
+                .padding(.top, 44)
+                Spacer(minLength: 0)
+            }
             if let problem = model.cameraProblem {
                 problemCard(problem)
             }
+        }
+        .sheet(isPresented: $showScoreboard) {
+            ScoreboardEditor()
+                .environmentObject(model)
         }
         .sheet(isPresented: $showSettings) {
             SettingsView()

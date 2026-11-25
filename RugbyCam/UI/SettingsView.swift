@@ -175,6 +175,10 @@ struct SettingsView: View {
             Button("Forget this mount", role: .destructive) {
                 model.forgetMount()
             }
+            VStack(alignment: .leading) {
+                Text("Arrow button speed: \(Int(model.settings.manualSpeed * 100)) %")
+                Slider(value: $model.settings.manualSpeed, in: 0.1...1.0)
+            }
             Toggle("Allow tilting up and down", isOn: $model.settings.tiltEnabled)
             Toggle("Reverse left and right", isOn: $model.settings.invertPan)
             Toggle("Reverse up and down", isOn: $model.settings.invertTilt)
@@ -190,7 +194,7 @@ struct SettingsView: View {
         } header: {
             Text("Mount")
         } footer: {
-            Text("Close the XbotGo app first: the mount accepts one connection at a time. Until the mount's move commands are added to the app, RugbyCam only listens to the mount and does not turn it (tripod mode).")
+            Text("Close the XbotGo app first: the mount accepts one connection at a time. With Follow on, the mount turns with the play. The arrows on the camera screen (or on the iPad) turn it by hand and win over the tracking while you hold them. Let go and it stops.")
         }
     }
 

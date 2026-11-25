@@ -27,11 +27,28 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
             Keychain.set(streamKey, for: AppModel.streamKeyAccount)
         }
     }
-    @Published var cameraInfo = CameraInfo()
+    @Published var cameraInfo = CameraInfo() {
+        didSet {
+            refreshScoreOverlay()
+        }
+    }
     @Published var cameraProblem: String?
     @Published var zoom = 1.0
     @Published var isRecording = false
-    @Published var recordingSeconds = 0
+    @Published var recordingSeconds = 0 {
+        didSet {
+            if recordingSeconds != oldValue {
+                refreshScoreOverlay()
+            }
+        }
+    }
+    @Published var score = ScoreState.load() {
+        didSet {
+            guard score != oldValue else { return }
+            score.save()
+            refreshScoreOverlay()
+        }
+    }
     @Published var followEnabled = false
     @Published var autoZoomEnabled = false
     @Published var mountState = MountState.idle
@@ -53,6 +70,7 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
 
     let camera = CameraEngine()
     let training = TrainingStore()
+    private let scoreOverlay = ScoreOverlay()
     private let remote = RemoteServer()
     private var remoteSeenWork: DispatchWorkItem?
     private lazy var recorder = Recorder(queue: camera.captureQueue)
@@ -523,6 +541,42 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
         camera.start()
     }
 
+    // MARK: - Scoreboard
+
+    private func refreshScoreOverlay() {
+        scoreOverlay.update(score: score, clock: recordingTimeText,
+                            width: cameraInfo.width, height: cameraInfo.height)
+    }
+
+    func addPoints(home: Bool, _ points: Int) {
+        if home {
+            score.homeScore = max(0, score.homeScore + points)
+        } else {
+            score.awayScore = max(0, score.awayScore + points)
+        }
+    }
+
+    func resetScore() {
+        score.homeScore = 0
+        score.awayScore = 0
+        score.period = 1
+    }
+
+    // MARK: - Arrows (manual mount control)
+
+    /// Turns the mount while called repeatedly (every 0.1-0.15 s). Wins over the tracking.
+    /// pan: -1 left, +1 right. tilt: -1 up, +1 down.
+    func manualMove(pan: Double, tilt: Double) {
+        let speed = min(max(settings.manualSpeed, 0.05), 1.0)
+        let panRate = (settings.invertPan ? -pan : pan) * speed
+        let tiltRate = (settings.invertTilt ? -tilt : tilt) * speed
+        mount.setManual(pan: panRate, tilt: tiltRate, hold: 0.35)
+    }
+
+    func manualStop() {
+        mount.setManual(pan: 0, tilt: 0, hold: 0)
+    }
+
     // MARK: - iPad remote
 
     var remoteAddresses: [String] {
@@ -570,6 +624,22 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
             disconnectMount()
         case "reloadModels":
             reloadModels()
+        case "pan":
+            manualMove(pan: (value ?? 0) > 0 ? 1 : -1, tilt: 0)
+        case "tilt":
+            manualMove(pan: 0, tilt: (value ?? 0) > 0 ? 1 : -1)
+        case "moveStop":
+            manualStop()
+        case "scoreHome":
+            addPoints(home: true, Int((value ?? 0).rounded()))
+        case "scoreAway":
+            addPoints(home: false, Int((value ?? 0).rounded()))
+        case "scoreReset":
+            resetScore()
+        case "scoreShow":
+            score.showInVideo = (value ?? 0) > 0.5
+        case "period":
+            score.period = (value ?? 1) > 1.5 ? 2 : 1
         default:
             break
         }
@@ -584,7 +654,7 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
         "autoZoomMinDisplay": 0.5...4.0, "autoZoomMaxDisplay": 1.0...15.0,
         "zoomTightness": 0.35...0.80, "followSpeed": 0.3...3.0, "detectionRate": 4.0...30.0,
         "ballConfidence": 0.05...0.60, "searchZoom": 1.0...4.0, "importEvery": 0.5...5.0,
-        "streamBitrateMbps": 2.0...40.0
+        "streamBitrateMbps": 2.0...40.0, "manualSpeed": 0.1...1.0
     ]
     private static let remoteInts: [String: ClosedRange<Int>] = [
         "importKeep": 20...200, "streamFPS": 30...60
@@ -606,6 +676,14 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
 
     /// Changes one setting from the iPad. Returns a problem, or nil when it worked.
     private func remoteSet(_ key: String, _ raw: String) -> String? {
+        if key == "homeName" {
+            score.home = ScoreState.cleanName(raw, fallback: "Home")
+            return nil
+        }
+        if key == "awayName" {
+            score.away = ScoreState.cleanName(raw, fallback: "Away")
+            return nil
+        }
         if isRecording && (key == "quality" || key == "stabilisation") {
             return "Stop the recording first to change this."
         }
@@ -669,6 +747,13 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
         }
         status.ballConfirmed = snapshot.ballConfirmed
         status.players = snapshot.players.map { [$0.x, $0.y, $0.w, $0.h] }
+        status.mountReady = mountState.canMove
+        status.home = score.home
+        status.away = score.away
+        status.homeScore = score.homeScore
+        status.awayScore = score.awayScore
+        status.period = score.period
+        status.scoreInVideo = score.showInVideo
         return status
     }
 
@@ -699,6 +784,10 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
     // MARK: - Frames (capture queue)
 
     func cameraEngine(_ engine: CameraEngine, didOutputVideo sampleBuffer: CMSampleBuffer) {
+        // The scoreboard goes into the frame first, so the recording and the stream both show it.
+        if let frame = CMSampleBufferGetImageBuffer(sampleBuffer) {
+            scoreOverlay.draw(on: frame)
+        }
         recorder.appendVideo(sampleBuffer)
         if streamWantsFrames {
             streamer.appendVideo(sampleBuffer)

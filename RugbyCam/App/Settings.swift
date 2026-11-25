@@ -109,6 +109,7 @@ struct AppSettings: Codable, Equatable {
     var tiltEnabled = true
     var invertPan = false
     var invertTilt = false
+    var manualSpeed = 0.5             // speed of the arrow buttons, 0.1 ... 1
 
     // Training
     var saveHardFrames = false        // keep pictures of moments the ball is lost while recording
