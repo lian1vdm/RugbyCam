@@ -237,7 +237,7 @@ struct SettingsView: View {
         } header: {
             Text("iPad remote")
         } footer: {
-            Text("Put the iPad on the same Wi-Fi as the iPhone. On the pitch, turn on the iPhone's Personal Hotspot and join it with the iPad (Hotspot address). Open the address above in Safari on the iPad and enter the PIN. Tip: Share > Add to Home Screen makes it an icon. Keep RugbyCam open on the iPhone.")
+            Text("Put the iPad on the same Wi-Fi as the iPhone. On the pitch, turn on the iPhone's Personal Hotspot and join it with the iPad. Open the RC Remote app on the iPad: it finds this iPhone by itself, then enter the PIN. Without the app, open the address above in Safari. Keep RugbyCam open on the iPhone.")
         }
     }
 

@@ -1,0 +1,274 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		924AA400CACD37C82C43F935 /* ConnectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4244581EDAC462D0AE8F7CDB /* ConnectView.swift */; };
+		9C8F181B987EC4B028F6477C /* ControlView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1287922F2933EF538C71C04E /* ControlView.swift */; };
+		67D78DE52F55AAE2B36DDF51 /* PhoneClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 743B88078E1FDD798858675A /* PhoneClient.swift */; };
+		BAA61D5F55546C88F55D50DC /* PhoneFinder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E0A769382E5750307D80EA5 /* PhoneFinder.swift */; };
+		70FA5D9FE2CCE7B8A805FEDB /* RemoteApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43AA91A7C0F0DD99FB503325 /* RemoteApp.swift */; };
+		7E47B542E162AD6411EB8973 /* RemoteSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C55F2F9F345991203C79C0BF /* RemoteSettingsView.swift */; };
+		2A84E45B840BFC29EE8B01CB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 74532050809EE2A095734FF8 /* Assets.xcassets */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		36DBD843FF085AAE85679908 /* RugbyCamRemote.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RugbyCamRemote.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		75EFB57BA313A181F7D18441 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		74532050809EE2A095734FF8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		4244581EDAC462D0AE8F7CDB /* ConnectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectView.swift; sourceTree = "<group>"; };
+		1287922F2933EF538C71C04E /* ControlView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlView.swift; sourceTree = "<group>"; };
+		743B88078E1FDD798858675A /* PhoneClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneClient.swift; sourceTree = "<group>"; };
+		5E0A769382E5750307D80EA5 /* PhoneFinder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneFinder.swift; sourceTree = "<group>"; };
+		43AA91A7C0F0DD99FB503325 /* RemoteApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteApp.swift; sourceTree = "<group>"; };
+		C55F2F9F345991203C79C0BF /* RemoteSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteSettingsView.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		2E3A9D21639F62E67EB62AE3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		FB110A292B399EFCD2DACF97 = {
+			isa = PBXGroup;
+			children = (
+				9B538C02D22F8AAFC6B1CCFC /* RugbyCamRemote */,
+				C0D597DE31EF256032F80A8F /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		C0D597DE31EF256032F80A8F /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				36DBD843FF085AAE85679908 /* RugbyCamRemote.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		9B538C02D22F8AAFC6B1CCFC /* RugbyCamRemote */ = {
+			isa = PBXGroup;
+			children = (
+				4244581EDAC462D0AE8F7CDB /* ConnectView.swift */,
+				1287922F2933EF538C71C04E /* ControlView.swift */,
+				743B88078E1FDD798858675A /* PhoneClient.swift */,
+				5E0A769382E5750307D80EA5 /* PhoneFinder.swift */,
+				43AA91A7C0F0DD99FB503325 /* RemoteApp.swift */,
+				C55F2F9F345991203C79C0BF /* RemoteSettingsView.swift */,
+				74532050809EE2A095734FF8 /* Assets.xcassets */,
+				75EFB57BA313A181F7D18441 /* Info.plist */,
+			);
+			path = RugbyCamRemote;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		5A7161629674BE8EE20BFADA /* RugbyCamRemote */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7285FF78054F192C1F0426FB /* Build configuration list for PBXNativeTarget "RugbyCamRemote" */;
+			buildPhases = (
+				4D0244826461E6E2087DA487 /* Sources */,
+				2E3A9D21639F62E67EB62AE3 /* Frameworks */,
+				86F5BCEF1AB01CCC547A1C2B /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = RugbyCamRemote;
+			productName = RugbyCamRemote;
+			productReference = 36DBD843FF085AAE85679908 /* RugbyCamRemote.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		C6B3DA764512E8D43B81C730 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					5A7161629674BE8EE20BFADA = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = E47E5B371B01E7C0E065B3F2 /* Build configuration list for PBXProject "RugbyCamRemote" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = FB110A292B399EFCD2DACF97;
+			productRefGroup = C0D597DE31EF256032F80A8F /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				5A7161629674BE8EE20BFADA /* RugbyCamRemote */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		86F5BCEF1AB01CCC547A1C2B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2A84E45B840BFC29EE8B01CB /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		4D0244826461E6E2087DA487 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				924AA400CACD37C82C43F935 /* ConnectView.swift in Sources */,
+				9C8F181B987EC4B028F6477C /* ControlView.swift in Sources */,
+				67D78DE52F55AAE2B36DDF51 /* PhoneClient.swift in Sources */,
+				BAA61D5F55546C88F55D50DC /* PhoneFinder.swift in Sources */,
+				70FA5D9FE2CCE7B8A805FEDB /* RemoteApp.swift in Sources */,
+				7E47B542E162AD6411EB8973 /* RemoteSettingsView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		06842397AF317401973D628D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		4C78AEE535D13EA729A0D69B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		CCFF97709E407044ED75AE91 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = RugbyCamRemote/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.rugbycam.remote;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		E37FC865406F340E032BE4FA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = RugbyCamRemote/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.rugbycam.remote;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		E47E5B371B01E7C0E065B3F2 /* Build configuration list for PBXProject "RugbyCamRemote" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				06842397AF317401973D628D /* Debug */,
+				4C78AEE535D13EA729A0D69B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		7285FF78054F192C1F0426FB /* Build configuration list for PBXNativeTarget "RugbyCamRemote" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CCFF97709E407044ED75AE91 /* Debug */,
+				E37FC865406F340E032BE4FA /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+	};
+	rootObject = C6B3DA764512E8D43B81C730 /* Project object */;
+}

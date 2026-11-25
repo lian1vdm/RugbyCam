@@ -45,6 +45,8 @@ struct RemoteStatus: Encodable {
 /// Every request except the page itself needs the PIN shown on the iPhone.
 final class RemoteServer {
     static let port: UInt16 = 8080
+    /// The Bonjour name the iPad app looks for. Also listed under NSBonjourServices in Info.plist.
+    static let serviceType = "_rugbycam._tcp"
     private static let pinKey = "remote.pin"
 
     /// Called on the main thread to build the status.
@@ -64,6 +66,7 @@ final class RemoteServer {
 
     private let queue = DispatchQueue(label: "rugbycam.remote", qos: .utility)
     private var listener: NWListener?
+    private var advertise = true
 
     // Small preview pictures. Encoded only while a control panel is watching.
     private let ciContext = CIContext(options: [.cacheIntermediates: false])
@@ -104,6 +107,10 @@ final class RemoteServer {
             let parameters = NWParameters.tcp
             parameters.allowLocalEndpointReuse = true
             let newListener = try NWListener(using: parameters, on: NWEndpoint.Port(rawValue: RemoteServer.port)!)
+            // Announce the control panel on the network, so the RugbyCam Remote app on the iPad finds it.
+            if advertise {
+                newListener.service = NWListener.Service(name: nil, type: RemoteServer.serviceType)
+            }
             newListener.newConnectionHandler = { [weak self] connection in
                 self?.accept(connection)
             }
@@ -111,9 +118,16 @@ final class RemoteServer {
                 switch state {
                 case .failed(let error):
                     DispatchQueue.main.async {
-                        self?.listener?.cancel()
-                        self?.listener = nil
-                        self?.onStateChange?("The iPad remote could not start: \(error.localizedDescription)")
+                        guard let self = self else { return }
+                        self.listener?.cancel()
+                        self.listener = nil
+                        if self.advertise {
+                            // Try once more without announcing it; the address still works in Safari.
+                            self.advertise = false
+                            self.start()
+                        } else {
+                            self.onStateChange?("The iPad remote could not start: \(error.localizedDescription)")
+                        }
                     }
                 case .ready:
                     DispatchQueue.main.async {
