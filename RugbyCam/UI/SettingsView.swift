@@ -54,10 +54,17 @@ struct SettingsView: View {
             Toggle("Save recordings to Photos", isOn: $model.settings.saveToPhotos)
             Toggle("Stabilise the picture", isOn: $model.settings.stabilisation)
                 .disabled(model.isRecording)
+            Toggle("Also record a wide backup (0.5x lens)", isOn: $model.settings.backupRecording)
+                .disabled(model.isRecording)
+            if model.settings.backupRecording, let text = model.backupText {
+                Text(text)
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+            }
         } header: {
             Text("Recording")
         } footer: {
-            Text("\(model.cameraInfo.deviceName)  \(model.freeSpaceText). 4K 60 uses roughly 0.4 GB per minute. With Photos off, recordings stay in the Files app under RugbyCam > Recordings.")
+            Text("\(model.cameraInfo.deviceName)  \(model.freeSpaceText). 4K 60 uses roughly 0.4 GB per minute. With Photos off, recordings stay in the Files app under RugbyCam > Recordings. The wide backup is a second video that is never zoomed (about 75 MB per minute), for moments the tracking missed. With two cameras the phone may allow less quality for the main video, it gets warmer, and the 0.5x lens is used for the backup instead of the main video. When the phone gets hot, the backup stops first.")
         }
     }
 
@@ -93,10 +100,39 @@ struct SettingsView: View {
                 Text("Ball search zoom: \(SettingsView.number(model.settings.searchZoom))x")
                 Slider(value: $model.settings.searchZoom, in: 1.0...4.0)
             }
+            Toggle("Frame scrums, lineouts, kicks and breaks in their own way", isOn: $model.settings.situationFraming)
         } header: {
             Text("Tracking")
         } footer: {
-            Text("More looks per second and a higher ball search zoom find the ball better but make the phone warmer. If the mount swings back and forth, lower how eagerly it follows.")
+            Text("More looks per second and a higher ball search zoom find the ball better but make the phone warmer. If the mount swings back and forth, lower how eagerly it follows. Scrum, ruck or maul: zooms in on the pile and keeps some room around it. Lineout: medium. Kick: zooms out at once. Line break: a bit wider, with room in front of the runner.")
+        }
+        learnedSection
+    }
+
+    private var learnedSection: some View {
+        Section {
+            let lines = model.framing.summary
+            if lines.isEmpty {
+                Text("Nothing learned yet. Tap Frame on the camera screen and draw how you would film the moment, or answer the framing question when checking training pictures.")
+                    .font(.footnote)
+                    .foregroundColor(.secondary)
+            } else {
+                ForEach(lines, id: \.self) { line in
+                    Text(line).font(.footnote)
+                }
+                Button("Forget what the zoom learned", role: .destructive) {
+                    model.resetLearnedFraming()
+                }
+            }
+            HStack {
+                Text("Framing examples saved")
+                Spacer()
+                Text("\(model.framing.exampleCount)").foregroundColor(.secondary)
+            }
+        } header: {
+            Text("Framing you showed")
+        } footer: {
+            Text("Every frame you draw teaches the auto zoom how tightly you like each situation filmed. The examples also go to the PC with the training pictures, for training a real zoom model later.")
         }
     }
 

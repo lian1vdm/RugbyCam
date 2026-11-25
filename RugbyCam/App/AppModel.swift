@@ -65,11 +65,18 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
     @Published var remoteConnected = false     // an iPad looked at the control panel in the last few seconds
     @Published var remoteProblem: String?
     @Published var remotePin = ""
+    @Published var backupText: String?          // what the wide backup recording is doing
 
     // MARK: - Parts
 
     let camera = CameraEngine()
     let training = TrainingStore()
+    let framing = FramingStore()
+    private lazy var backupRecorder = Recorder(queue: camera.captureQueue)
+    private var backupURL: URL?
+    private var cameraBackupWanted = false       // what the camera was set up with
+    private var autoZoomResume: DispatchWorkItem?
+    private var remoteFramingCache: (id: String, ball: NBox?, result: PictureFraming)?
     private let scoreOverlay = ScoreOverlay()
     private let remote = RemoteServer()
     private var remoteSeenWork: DispatchWorkItem?
@@ -98,6 +105,11 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
         recorder.onFailure = { [weak self] error in
             DispatchQueue.main.async {
                 self?.recordingBroke(error)
+            }
+        }
+        backupRecorder.onFailure = { [weak self] error in
+            DispatchQueue.main.async {
+                self?.backupText = "Backup stopped: \(error.localizedDescription)"
             }
         }
         mount.onStateChange = { [weak self] state in
@@ -137,6 +149,9 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
         }
         remote.onStateChange = { [weak self] problem in
             self?.remoteProblem = problem
+        }
+        remote.onRoute = { [weak self] path, query, reply in
+            return self?.remoteRoute(path, query, reply) ?? false
         }
 
         let center = NotificationCenter.default
@@ -191,15 +206,26 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
     private func configureCamera() {
         cameraProblem = nil
         let wanted = settings.quality
-        camera.configure(quality: wanted, stabilise: settings.stabilisation) { [weak self] result in
+        let backup = settings.backupRecording
+        cameraBackupWanted = backup
+        camera.configure(quality: wanted, stabilise: settings.stabilisation, backup: backup) { [weak self] result in
             DispatchQueue.main.async {
                 guard let self = self else { return }
                 switch result {
                 case .success(let info):
                     self.cameraInfo = info
                     self.zoom = info.wideZoom
+                    if let note = info.backupNote {
+                        self.backupText = note
+                        self.show(note)
+                    } else if info.backupActive {
+                        self.backupText = "Ready: \(info.backupWidth)x\(info.backupHeight) at \(info.backupFPS) fps with the 0.5x lens."
+                    } else {
+                        self.backupText = nil
+                    }
                     if info.width != wanted.width || info.fps != wanted.fps {
-                        self.show("This camera does not offer \(wanted.label), so it is using \(info.width)x\(info.height) at \(info.fps) fps.")
+                        let why = info.backupActive ? " With the backup on, the phone allows less." : ""
+                        self.show("This camera does not offer \(wanted.label) here, so it is using \(info.width)x\(info.height) at \(info.fps) fps.\(why)")
                     }
                     self.pushTrackingConfig()
                     self.resumeCamera()
@@ -224,7 +250,8 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
     // MARK: - Settings
 
     private func settingsChanged(from old: AppSettings) {
-        if old.quality != settings.quality || old.stabilisation != settings.stabilisation {
+        if old.quality != settings.quality || old.stabilisation != settings.stabilisation
+            || old.backupRecording != settings.backupRecording {
             if isRecording {
                 show("The new video setting applies when this recording ends.")
             } else {
@@ -271,6 +298,9 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
         config.invertPan = settings.invertPan
         config.invertTilt = settings.invertTilt
         config.collectTraining = settings.saveHardFrames && isRecording
+        config.situationsEnabled = settings.situationFraming
+        config.learnedFraming = framing.learned
+        config.displayMultiplier = info.displayMultiplier
         tracking.config = config
         if !config.enabled {
             snapshot = TrackingSnapshot()
@@ -298,6 +328,8 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
     }
 
     func setAutoZoom(_ on: Bool) {
+        autoZoomResume?.cancel()
+        autoZoomResume = nil
         autoZoomEnabled = on
         if !followEnabled && !autoZoomEnabled {
             tracking.reset()
@@ -309,6 +341,8 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
 
     /// Zoom chosen by the user. Touching the zoom switches auto zoom off.
     func userZoom(to factor: Double, glide: Bool) {
+        autoZoomResume?.cancel()
+        autoZoomResume = nil
         if autoZoomEnabled {
             autoZoomEnabled = false
             pushTrackingConfig()
@@ -335,6 +369,61 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
 
     var zoomText: String {
         return String(format: "%.1fx", zoom * cameraInfo.displayMultiplier)
+    }
+
+    // MARK: - Framing shown by hand
+
+    /// The person drew the frame they want on the live picture (0...1, any shape).
+    /// The camera zooms to it, and the zoom learns from it. With auto zoom on,
+    /// auto zoom pauses for a few seconds and then carries on, now framing more like this.
+    func userFrame(_ drawn: NBox) {
+        let size = Geo.clamp(max(drawn.w, drawn.h), 0.05, 1.0)
+        let centre = drawn.center
+        let chosen = NBox(x: Geo.clamp(centre.x - size / 2.0, 0.0, 1.0 - size),
+                          y: Geo.clamp(centre.y - size / 2.0, 0.0, 1.0 - size), w: size, h: size)
+        let snap = snapshot
+        let situation = snap.situation == .lost ? PlaySituation.open : snap.situation
+        let example = FramingExample(created: Date(), source: "match", pictureID: nil,
+                                     situation: situation, detectedSituation: snap.situation,
+                                     players: snap.players, ball: snap.ball, action: snap.actionBox,
+                                     appFrame: snap.frame, chosenFrame: chosen, features: snap.features)
+        let note = learnFraming(example)
+
+        let wasAuto = autoZoomEnabled
+        let target = min(max(zoom / size, cameraInfo.minZoom), cameraInfo.maxZoom)
+        if wasAuto {
+            autoZoomEnabled = false
+            pushTrackingConfig()
+        }
+        zoom = target
+        camera.setZoom(target, duration: 0.5)
+        if wasAuto {
+            autoZoomResume?.cancel()
+            let work = DispatchWorkItem { [weak self] in
+                guard let self = self, !self.autoZoomEnabled else { return }
+                self.autoZoomResume = nil
+                self.autoZoomEnabled = true
+                self.pushTrackingConfig()
+            }
+            autoZoomResume = work
+            DispatchQueue.main.asyncAfter(deadline: .now() + 6.0, execute: work)
+        }
+        show("Zoomed to your frame (\(situation.label.lowercased())). \(note)")
+    }
+
+    /// Saves a framing example and hands what was learned to the tracking.
+    @discardableResult
+    func learnFraming(_ example: FramingExample) -> String {
+        objectWillChange.send()
+        let note = framing.add(example)
+        pushTrackingConfig()
+        return note
+    }
+
+    func resetLearnedFraming() {
+        objectWillChange.send()
+        framing.resetLearned()
+        pushTrackingConfig()
     }
 
     // MARK: - Recording
@@ -365,7 +454,12 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
             queue.async {
                 do {
                     try self.recorder.start(url: url, videoSettings: video, audioSettings: audio)
+                    let backupStarted = self.startBackup(mainURL: url, audio: audio)
                     DispatchQueue.main.async {
+                        self.backupURL = backupStarted
+                        if self.cameraInfo.backupActive {
+                            self.backupText = backupStarted != nil ? "Recording the wide backup" : "The backup could not start."
+                        }
                         self.isRecording = true
                         self.recordingSeconds = 0
                         self.startClock()
@@ -380,8 +474,61 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
         }
     }
 
+    /// Starts the wide backup file next to the main one. Capture queue.
+    private func startBackup(mainURL: URL, audio: [String: Any]?) -> URL? {
+        let info = camera.info
+        guard info.backupActive, info.backupWidth > 0 else { return nil }
+        let name = mainURL.deletingPathExtension().lastPathComponent + "_wide.mov"
+        let url = mainURL.deletingLastPathComponent().appendingPathComponent(name)
+        let settings: [String: Any] = [
+            AVVideoCodecKey: AVVideoCodecType.hevc,
+            AVVideoWidthKey: info.backupWidth,
+            AVVideoHeightKey: info.backupHeight,
+            AVVideoCompressionPropertiesKey: [
+                AVVideoAverageBitRateKey: 10_000_000,
+                AVVideoExpectedSourceFrameRateKey: 30,
+                AVVideoMaxKeyFrameIntervalKey: 30
+            ] as [String: Any]
+        ]
+        camera.setBackupEnabled(true)
+        do {
+            try backupRecorder.start(url: url, videoSettings: settings, audioSettings: audio)
+            return url
+        } catch {
+            return nil
+        }
+    }
+
+    /// Stops only the backup (for example because the phone is hot). Main thread.
+    private func stopBackup(reason: String) {
+        camera.setBackupEnabled(false)
+        camera.captureQueue.async {
+            guard self.backupRecorder.isActive else { return }
+            self.backupRecorder.stop { result in
+                DispatchQueue.main.async {
+                    self.backupText = reason
+                    if case .success(let url) = result {
+                        self.keep(url, quiet: true)
+                    }
+                }
+            }
+        }
+    }
+
     private func stopRecording() {
         camera.captureQueue.async {
+            if self.backupRecorder.isActive {
+                self.backupRecorder.stop { result in
+                    DispatchQueue.main.async {
+                        if case .success(let url) = result {
+                            self.keep(url, quiet: true)
+                        }
+                        if self.cameraInfo.backupActive {
+                            self.backupText = "Backup saved too (its name ends in _wide)."
+                        }
+                    }
+                }
+            }
             self.recorder.stop { result in
                 DispatchQueue.main.async {
                     self.recordingEnded()
@@ -397,31 +544,42 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
     }
 
     private func recordingBroke(_ error: Error) {
+        camera.captureQueue.async {
+            if self.backupRecorder.isActive {
+                self.backupRecorder.stop { _ in }
+            }
+        }
         recordingEnded()
         show("Recording stopped: \(error.localizedDescription). The part recorded so far is in the Files app under RugbyCam > Recordings.")
     }
 
     private func recordingEnded() {
         isRecording = false
+        backupURL = nil
         pauseCameraIfIdle()
         pushTrackingConfig()
         clock?.invalidate()
         clock = nil
         // A video setting changed during the recording: apply it now.
-        if cameraInfo.width != settings.quality.width || cameraInfo.fps != settings.quality.fps {
+        if cameraInfo.width != settings.quality.width || cameraInfo.fps != settings.quality.fps
+            || cameraBackupWanted != settings.backupRecording {
             configureCamera()
         }
     }
 
-    private func keep(_ url: URL) {
+    private func keep(_ url: URL, quiet: Bool = false) {
         guard settings.saveToPhotos else {
-            show("Saved in the Files app under RugbyCam > Recordings.")
+            if !quiet {
+                show("Saved in the Files app under RugbyCam > Recordings.")
+            }
             return
         }
         RecordingStore.moveToPhotos(url) { [weak self] success, problem in
             DispatchQueue.main.async {
                 if success {
-                    self?.show("Saved to Photos.")
+                    if !quiet {
+                        self?.show("Saved to Photos.")
+                    }
                 } else {
                     self?.show(problem ?? "Could not save to Photos. The video is in the Files app under RugbyCam > Recordings.")
                 }
@@ -648,7 +806,7 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
     // Settings the iPad may change, with the same limits as the sliders on the iPhone.
     private static let remoteBools: Set<String> = [
         "saveToPhotos", "stabilisation", "showOverlay", "lensStepsOnly", "tiltEnabled",
-        "invertPan", "invertTilt", "saveHardFrames"
+        "invertPan", "invertTilt", "saveHardFrames", "askFraming", "situationFraming", "backupRecording"
     ]
     private static let remoteNumbers: [String: ClosedRange<Double>] = [
         "autoZoomMinDisplay": 0.5...4.0, "autoZoomMaxDisplay": 1.0...15.0,
@@ -671,6 +829,8 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
         dict["_mountIdle"] = mountState == .idle
         dict["_ballModel"] = ballModelStatus
         dict["_device"] = cameraInfo.deviceName
+        dict["_backup"] = backupText ?? (settings.backupRecording ? "Starting" : "Off")
+        dict["_learned"] = framing.summary.joined(separator: "\n")
         return (try? JSONSerialization.data(withJSONObject: dict)) ?? Data("{}".utf8)
     }
 
@@ -684,7 +844,7 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
             score.away = ScoreState.cleanName(raw, fallback: "Away")
             return nil
         }
-        if isRecording && (key == "quality" || key == "stabilisation") {
+        if isRecording && (key == "quality" || key == "stabilisation" || key == "backupRecording") {
             return "Stop the recording first to change this."
         }
         guard let data = try? JSONEncoder().encode(settings),
@@ -754,7 +914,163 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
         status.awayScore = score.awayScore
         status.period = score.period
         status.scoreInVideo = score.showInVideo
+        status.situation = snapshot.situation.label
+        status.situationKey = snapshot.situation.rawValue
+        if let frame = snapshot.frame {
+            status.appFrame = [frame.x, frame.y, frame.w, frame.h]
+        }
+        status.backup = backupText ?? ""
+        status.trainingPending = training.pendingCount
         return status
+    }
+
+    // MARK: - iPad: framing and training pictures
+
+    /// Requests the plain status routes do not cover. Main thread.
+    /// Returns false for unknown paths.
+    private func remoteRoute(_ path: String, _ query: [String: String],
+                             _ reply: @escaping (String, String, Data) -> Void) -> Bool {
+        func json(_ object: [String: Any]) {
+            let data = (try? JSONSerialization.data(withJSONObject: object)) ?? Data("{}".utf8)
+            reply("200 OK", "application/json", data)
+        }
+        func box(_ prefix: String) -> NBox? {
+            guard let x = query[prefix + "x"].flatMap(Double.init), let y = query[prefix + "y"].flatMap(Double.init),
+                  let w = query[prefix + "w"].flatMap(Double.init), let h = query[prefix + "h"].flatMap(Double.init),
+                  x.isFinite, y.isFinite, w.isFinite, h.isFinite, w > 0.0, h > 0.0 else {
+                return nil
+            }
+            return NBox(x: Geo.clamp(x, 0, 1), y: Geo.clamp(y, 0, 1), w: Geo.clamp(w, 0.001, 1), h: Geo.clamp(h, 0.001, 1))
+        }
+        func knownPicture() -> String? {
+            guard let id = query["id"], training.items.contains(where: { $0.id == id }) else { return nil }
+            return id
+        }
+
+        switch path {
+        case "/frame":
+            guard let drawn = box("") else {
+                json(["error": "No frame was sent."])
+                return true
+            }
+            userFrame(drawn)
+            json(["ok": true, "note": notice ?? ""])
+        case "/train/next":
+            json(remoteTrainingNext(after: query["after"]))
+        case "/train/image":
+            guard let id = knownPicture() else {
+                reply("404 Not Found", "text/plain", Data("This picture is gone.".utf8))
+                return true
+            }
+            let url = training.imageURL(for: id)
+            DispatchQueue.global(qos: .userInitiated).async {
+                if let image = TrainingStore.loadImage(at: url, maxPixels: 2400),
+                   let data = UIImage(cgImage: image).jpegData(compressionQuality: 0.85) {
+                    reply("200 OK", "image/jpeg", data)
+                } else {
+                    reply("404 Not Found", "text/plain", Data("This picture could not be read.".utf8))
+                }
+            }
+        case "/train/answer":
+            guard let id = knownPicture() else {
+                var next = remoteTrainingNext(after: nil)
+                next["error"] = "This picture was already answered or deleted."
+                json(next)
+                return true
+            }
+            switch query["a"] ?? "" {
+            case "ball":
+                guard let ball = box("") else {
+                    json(["error": "No ball box was sent."])
+                    return true
+                }
+                training.setLabel(.ball(ball), for: id)
+            case "noball":
+                training.setLabel(.noBall, for: id)
+            case "discard":
+                training.discard(id)
+            default:
+                json(["error": "Unknown answer."])
+                return true
+            }
+            json(remoteTrainingNext(after: id))
+        case "/train/framing":
+            guard let id = knownPicture() else {
+                json(["error": "This picture is gone."])
+                return true
+            }
+            let ball = box("b")
+            PictureFramer.analyze(imageURL: training.imageURL(for: id), ball: ball,
+                                  tightness: settings.zoomTightness, learned: framing.learned) { [weak self] result in
+                guard let self = self else { return }
+                self.remoteFramingCache = (id, ball, result)
+                json(AppModel.framingJSON(result))
+            }
+        case "/train/situation":
+            guard let cache = remoteFramingCache, cache.id == query["id"],
+                  let situation = PlaySituation(rawValue: query["sit"] ?? "") else {
+                json(["error": "Ask for the framing first."])
+                return true
+            }
+            let result = PictureFramer.frame(players: cache.result.players, ball: cache.ball, situation: situation,
+                                             tightness: settings.zoomTightness, learned: framing.learned)
+            remoteFramingCache = (cache.id, cache.ball, result)
+            json(AppModel.framingJSON(result))
+        case "/train/saveframe":
+            guard let chosen = box("") else {
+                json(["error": "No frame was sent."])
+                return true
+            }
+            let situation = PlaySituation(rawValue: query["sit"] ?? "") ?? .open
+            var result = PictureFraming()
+            var ball: NBox?
+            if let cache = remoteFramingCache, cache.id == query["id"] {
+                ball = cache.ball
+                result = PictureFramer.frame(players: cache.result.players, ball: cache.ball, situation: situation,
+                                             tightness: settings.zoomTightness, learned: framing.learned)
+            }
+            let example = FramingExample(created: Date(), source: "picture", pictureID: query["id"],
+                                         situation: situation,
+                                         detectedSituation: FramingMath.stillSituation(result.players),
+                                         players: result.players, ball: ball, action: result.action,
+                                         appFrame: result.appFrame, chosenFrame: chosen, features: result.features)
+            json(["note": learnFraming(example)])
+        default:
+            return false
+        }
+        return true
+    }
+
+    private func remoteTrainingNext(after: String?) -> [String: Any] {
+        let pending = training.pending
+        var item = pending.first
+        if let after = after, let index = pending.firstIndex(where: { $0.id == after }) {
+            item = index + 1 < pending.count ? pending[index + 1] : pending.first(where: { $0.id != after })
+        }
+        var answer: [String: Any] = [
+            "pending": pending.count,
+            "checked": training.checked.count,
+            "askFraming": settings.askFraming
+        ]
+        if let next = item {
+            answer["id"] = next.id
+            answer["confidence"] = next.guessConfidence
+            if let guess = next.guess {
+                answer["guess"] = [guess.x, guess.y, guess.w, guess.h]
+            }
+        }
+        return answer
+    }
+
+    private static func framingJSON(_ result: PictureFraming) -> [String: Any] {
+        var answer: [String: Any] = [
+            "players": result.players.map { [$0.x, $0.y, $0.w, $0.h] },
+            "situation": result.situation.rawValue
+        ]
+        if let frame = result.appFrame {
+            answer["appFrame"] = [frame.x, frame.y, frame.w, frame.h]
+        }
+        return answer
     }
 
     // MARK: - Mount
@@ -822,8 +1138,13 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
         }
     }
 
+    func cameraEngine(_ engine: CameraEngine, didOutputBackupVideo sampleBuffer: CMSampleBuffer) {
+        backupRecorder.appendVideo(sampleBuffer)
+    }
+
     func cameraEngine(_ engine: CameraEngine, didOutputAudio sampleBuffer: CMSampleBuffer) {
         recorder.appendAudio(sampleBuffer)
+        backupRecorder.appendAudio(sampleBuffer)
         if streamWantsFrames {
             streamer.appendAudio(sampleBuffer)
         }
@@ -858,6 +1179,12 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
     private func updateHeat() {
         let state = ProcessInfo.processInfo.thermalState
         isHot = state == .serious || state == .critical
+        // The backup is the first thing to go, so the main recording keeps running.
+        if isHot && isRecording && backupURL != nil {
+            backupURL = nil
+            stopBackup(reason: "Backup stopped because the phone got hot. The part so far is saved.")
+            show("The phone is hot, so the wide backup was stopped. The main recording continues.")
+        }
     }
 
     /// Shows a short message at the bottom of the screen for a few seconds.
@@ -890,6 +1217,9 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
         case .ballHeld: parts.append("Ball hidden, holding")
         case .players: parts.append(hasBallModel ? "Following the players" : "Following the players (no ball model)")
         case .searching: parts.append("Nothing in view")
+        }
+        if settings.situationFraming && snapshot.situation != .lost && snapshot.situation != .open {
+            parts.append(snapshot.situation.label)
         }
         if snapshot.looksPerSecond > 0.0 {
             parts.append(String(format: "%.0f ms, %.0f looks/s", snapshot.lookMilliseconds, snapshot.looksPerSecond))

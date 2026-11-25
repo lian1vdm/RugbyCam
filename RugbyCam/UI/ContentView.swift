@@ -5,12 +5,13 @@ struct ContentView: View {
     @EnvironmentObject var model: AppModel
     @State private var showSettings = false
     @State private var showScoreboard = false
+    @State private var drawingFrame = false
 
     var body: some View {
         ZStack {
             Color.black
                 .ignoresSafeArea()
-            CameraPreview(session: model.camera.session)
+            CameraPreview(camera: model.camera)
                 .ignoresSafeArea()
             if model.settings.showOverlay {
                 TrackingOverlay(snapshot: model.snapshot)
@@ -40,6 +41,10 @@ struct ContentView: View {
                 }
                 .padding(.top, 44)
                 Spacer(minLength: 0)
+            }
+            if drawingFrame {
+                LiveFrameDrawer(active: $drawingFrame)
+                    .ignoresSafeArea()
             }
             if let problem = model.cameraProblem {
                 problemCard(problem)
@@ -186,6 +191,19 @@ struct ContentView: View {
                             .frame(width: 54, height: 54)
                     }
                 }
+            }
+            Button {
+                drawingFrame.toggle()
+            } label: {
+                VStack(spacing: 2) {
+                    Image(systemName: "viewfinder")
+                        .font(.system(size: 20, weight: .semibold))
+                    Text(drawingFrame ? "Cancel" : "Frame")
+                        .font(.system(size: 11, weight: .semibold))
+                }
+                .foregroundColor(drawingFrame ? .yellow : .white)
+                .frame(width: 66, height: 50)
+                .background(RoundedRectangle(cornerRadius: 12).fill(Color.black.opacity(0.5)))
             }
             Button {
                 model.toggleStream()

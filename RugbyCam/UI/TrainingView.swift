@@ -60,10 +60,11 @@ struct TrainingView: View {
                     Label("Check pictures", systemImage: "checkmark.circle")
                 }
                 .disabled(store.pending.isEmpty)
+                Toggle("Also ask how to frame each picture", isOn: $model.settings.askFraming)
             } header: {
                 Text("Training pictures")
             } footer: {
-                Text("For each picture you mark where the ball is, or that there is none. The pictures where your model was unsure come first, because they teach it the most.")
+                Text("For each picture you mark where the ball is, or that there is none. The pictures where your model was unsure come first, because they teach it the most. With the framing question on, you then draw how you would have filmed it; the auto zoom learns from that. You can also check the pictures on the iPad in RC Remote.")
             }
 
             Section {
@@ -230,8 +231,17 @@ struct ShareSheet: UIViewControllerRepresentable {
 // MARK: - Checking one picture after another
 
 struct ReviewView: View {
+    @EnvironmentObject var model: AppModel
     @ObservedObject var store: TrainingStore
     @Environment(\.dismiss) private var dismiss
+
+    // The framing question, after the ball question.
+    @State private var framingFor: String?          // picture id while the framing is asked
+    @State private var framing: PictureFraming?
+    @State private var framingBall: NBox?
+    @State private var chosenFrame: NBox?
+    @State private var situation = PlaySituation.open
+    @State private var framingNote: String?
 
     @State private var itemID: String?
     @State private var picture: CGImage?
@@ -243,7 +253,9 @@ struct ReviewView: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            if let image = picture, let id = itemID {
+            if let image = picture, let id = framingFor, id == itemID {
+                framingStep(image)
+            } else if let image = picture, let id = itemID {
                 statusLine
                 BoxEditor(image: image, imageID: id, guess: guess, box: $box,
                           tapSize: tapSize, zoom: zoom)
@@ -377,6 +389,100 @@ struct ReviewView: View {
             tapSize = min(max(answer.w, 0.003), 0.08)
         }
         store.setLabel(label, for: id)
+        if model.settings.askFraming, let image = picture {
+            askFraming(id: id, image: image, label: label)
+        } else {
+            loadNext()
+        }
+    }
+
+    // MARK: Framing question
+
+    private func askFraming(id: String, image: CGImage, label: TrainingLabel) {
+        var ball: NBox?
+        if case .ball(let box) = label {
+            ball = box
+        }
+        framingFor = id
+        framingBall = ball
+        framing = nil
+        chosenFrame = nil
+        PictureFramer.analyze(imageURL: store.imageURL(for: id), ball: ball,
+                              tightness: model.settings.zoomTightness,
+                              learned: model.framing.learned) { result in
+            guard framingFor == id else { return }
+            framing = result
+            situation = result.situation
+        }
+    }
+
+    private func framingStep(_ image: CGImage) -> some View {
+        VStack(spacing: 8) {
+            Text("How would you have framed this? Draw the frame (green). Yellow is what the app would show.")
+                .font(.footnote)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            FrameEditor(image: UIImage(cgImage: image), players: framing?.players ?? [], ball: framingBall,
+                        appFrame: framing?.appFrame, frame: $chosenFrame)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            SituationPicker(situation: $situation)
+                .onChange(of: situation) { newValue in
+                    guard let current = framing else { return }
+                    framing = PictureFramer.frame(players: current.players, ball: framingBall, situation: newValue,
+                                                  tightness: model.settings.zoomTightness,
+                                                  learned: model.framing.learned)
+                }
+            Text("Drag: draw or move the frame. Pinch: frame tighter or wider. Tap: put the frame there. Pick what is happening above.")
+                .font(.caption2)
+                .foregroundColor(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            HStack(spacing: 8) {
+                Button {
+                    endFraming()
+                } label: {
+                    Label("Skip", systemImage: "forward")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                Button {
+                    chosenFrame = framing?.appFrame
+                } label: {
+                    Label("App's frame is right", systemImage: "hand.thumbsup")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .disabled(framing?.appFrame == nil)
+                Button {
+                    saveFraming()
+                } label: {
+                    Label("Save frame", systemImage: "checkmark.circle.fill")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.green)
+                .disabled(chosenFrame == nil)
+            }
+            .font(.subheadline)
+            if let note = framingNote {
+                Text(note).font(.caption).foregroundColor(.secondary)
+            }
+        }
+    }
+
+    private func saveFraming() {
+        guard let id = framingFor, let chosen = chosenFrame else { return }
+        let result = framing ?? PictureFraming()
+        let example = FramingExample(created: Date(), source: "picture", pictureID: id, situation: situation,
+                                     detectedSituation: FramingMath.stillSituation(result.players),
+                                     players: result.players, ball: framingBall, action: result.action,
+                                     appFrame: result.appFrame, chosenFrame: chosen, features: result.features)
+        framingNote = model.learnFraming(example)
+        endFraming()
+    }
+
+    private func endFraming() {
+        framingFor = nil
+        framing = nil
+        chosenFrame = nil
         loadNext()
     }
 

@@ -23,6 +23,9 @@ struct TrackingConfig {
     var invertPan = false
     var invertTilt = false
     var collectTraining = false   // save pictures where the ball is lost (while recording)
+    var situationsEnabled = true  // frame scrums, lineouts, kicks and breaks in their own way
+    var learnedFraming: [String: LearnedFrame] = [:]
+    var displayMultiplier = 1.0
 }
 
 /// What the tracking saw in the latest frame, for the overlay and the status line.
@@ -34,6 +37,9 @@ struct TrackingSnapshot {
     var lookAt: NPoint?
     var searchArea: NBox?
     var state = DirectorState.searching
+    var situation = PlaySituation.lost
+    var features = FramingFeatures()
+    var frame: NBox?              // the framing the zoom is heading for
     var lookMilliseconds = 0.0
     var looksPerSecond = 0.0
     var problem: String?
@@ -227,6 +233,7 @@ final class TrackingEngine {
         director.params.fillX = config.zoomTightness
         director.params.fillY = min(0.9, config.zoomTightness + 0.05)
         director.params.tiltEnabled = config.tiltEnabled
+        director.params.situationsEnabled = config.situationsEnabled
         let mountActive = config.follow && config.mountReady
         let ballPoint = tracker.isConfirmed ? tracker.predicted(at: time) : nil
         let input = DirectorInput(time: time,
@@ -238,7 +245,10 @@ final class TrackingEngine {
                                   zoomMax: max(config.zoomMax, config.zoomMin),
                                   wideZoom: config.wideZoom,
                                   mountActive: mountActive,
-                                  autoZoom: config.autoZoom)
+                                  autoZoom: config.autoZoom,
+                                  ballVelocity: tracker.isConfirmed ? tracker.velocity : nil,
+                                  learned: config.learnedFraming,
+                                  displayMultiplier: config.displayMultiplier)
         let output = director.update(input)
 
         var command = TrackingCommand()
@@ -277,6 +287,9 @@ final class TrackingEngine {
         snapshot.actionBox = output.actionBox
         snapshot.lookAt = output.lookAt
         snapshot.state = output.state
+        snapshot.situation = output.situation
+        snapshot.features = output.features
+        snapshot.frame = output.frame
         snapshot.lookMilliseconds = (ProcessInfo.processInfo.systemUptime - started) * 1000.0
         snapshot.looksPerSecond = looksPerSecond
         snapshot.problem = problem

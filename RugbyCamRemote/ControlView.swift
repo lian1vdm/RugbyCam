@@ -10,6 +10,8 @@ struct ControlView: View {
     @State private var zoomDraft: Double?
     @State private var confirmReset = false
     @State private var confirmStopRecording = false
+    @State private var drawingFrame = false
+    @State private var showTraining = false
 
     var body: some View {
         GeometryReader { geometry in
@@ -59,6 +61,10 @@ struct ControlView: View {
         .background(Color.black.ignoresSafeArea())
         .sheet(isPresented: $showSettings) {
             RemoteSettingsView()
+                .environmentObject(client)
+        }
+        .fullScreenCover(isPresented: $showTraining) {
+            TrainingRemoteView()
                 .environmentObject(client)
         }
         .confirmationDialog("Reset the scoreboard?", isPresented: $confirmReset, titleVisibility: .visible) {
@@ -111,7 +117,28 @@ struct ControlView: View {
                      text: status?.mountReady == true ? "Mount ready" : mount,
                      color: status?.mountReady == true ? Theme.green : Theme.dim)
             }
+            if let backup = status?.backup, backup.hasPrefix("Recording") {
+                chip(systemImage: "rectangle.on.rectangle", text: "Backup", color: Theme.red)
+            }
             Spacer(minLength: 0)
+            Button {
+                showTraining = true
+            } label: {
+                ZStack(alignment: .topTrailing) {
+                    Image(systemName: "graduationcap.fill")
+                        .font(.title2)
+                        .frame(width: 44, height: 44)
+                    if let count = status?.trainingPending, count > 0 {
+                        Text(count > 99 ? "99+" : "\(count)")
+                            .font(.caption2.weight(.bold))
+                            .foregroundColor(.black)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 1)
+                            .background(Capsule().fill(Theme.gold))
+                    }
+                }
+            }
+            .disabled(client.link != .connected)
             Button {
                 client.loadSettings()
                 showSettings = true
@@ -227,6 +254,25 @@ struct ControlView: View {
                     }
                 }
                 Spacer()
+                if drawingFrame {
+                    Text("Draw the frame you would film now. Yellow: what the app picks.")
+                        .font(.subheadline.weight(.semibold))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(Color.black.opacity(0.7))
+                        .clipShape(Capsule())
+                }
+                if let situation = current?.situation, !situation.isEmpty,
+                   current?.situationKey != "open", current?.situationKey != "lost" {
+                    Text(situation)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundColor(.black)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(Theme.gold)
+                        .clipShape(Capsule())
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
                 if let tracking = current?.tracking, !tracking.isEmpty {
                     Text(tracking)
                         .font(.footnote)
@@ -238,6 +284,12 @@ struct ControlView: View {
                 }
             }
             .padding(10)
+            if drawingFrame {
+                FrameDrawLayer(appFrame: NBox(current?.appFrame)) { frame in
+                    client.sendFrame(frame)
+                    drawingFrame = false
+                }
+            }
             if current?.cameraPaused == true {
                 overlayMessage("The settings are open on the iPhone, so the camera is paused.")
             } else if client.link == .connecting {
@@ -302,6 +354,21 @@ struct ControlView: View {
             toggleButton("Auto zoom", systemImage: "plus.magnifyingglass", isOn: status?.autoZoom) {
                 client.toggle("autozoom", isOn: status?.autoZoom)
             }
+            Button {
+                drawingFrame.toggle()
+            } label: {
+                VStack(spacing: 4) {
+                    Image(systemName: "viewfinder")
+                        .font(.title2)
+                    Text(drawingFrame ? "Cancel" : "Frame")
+                        .font(.subheadline.weight(.semibold))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(drawingFrame ? Theme.gold : Color.white.opacity(0.1))
+                .foregroundColor(drawingFrame ? .black : .white)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+            }
         }
         .disabled(client.link != .connected)
     }
@@ -325,7 +392,7 @@ struct ControlView: View {
 
     @ViewBuilder
     private var notice: some View {
-        if let text = status?.notice, !text.isEmpty {
+        if let text = status?.notice ?? client.lastNote, !text.isEmpty {
             Text(text)
                 .foregroundColor(Theme.gold)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -643,5 +710,65 @@ struct HoldButton: UIViewRepresentable {
             held = false
             parent.onRelease()
         }
+    }
+}
+
+/// Lies over the live picture while you draw how you would frame it.
+struct FrameDrawLayer: View {
+    let appFrame: NBox?
+    let onDone: (NBox) -> Void
+
+    @State private var start: CGPoint?
+    @State private var current: CGPoint?
+
+    var body: some View {
+        GeometryReader { geometry in
+            let size = geometry.size
+            ZStack {
+                Color.black.opacity(0.15)
+                Canvas { context, _ in
+                    if let suggestion = appFrame {
+                        context.stroke(Path(FrameDrawLayer.place(suggestion, in: size)), with: .color(Theme.gold),
+                                       style: StrokeStyle(lineWidth: 2, dash: [8, 6]))
+                    }
+                    if let box = drawn(in: size) {
+                        context.stroke(Path(FrameDrawLayer.place(box, in: size)), with: .color(Theme.green), lineWidth: 3)
+                    }
+                }
+            }
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 4)
+                    .onChanged { value in
+                        start = value.startLocation
+                        current = value.location
+                    }
+                    .onEnded { _ in
+                        if let box = drawn(in: size), box.w >= 0.04 {
+                            onDone(box)
+                        }
+                        start = nil
+                        current = nil
+                    }
+            )
+        }
+    }
+
+    /// The drawn frame in picture coordinates, in the shape of the picture.
+    private func drawn(in size: CGSize) -> NBox? {
+        guard let a = start, let b = current, size.width > 0, size.height > 0 else { return nil }
+        let ax = Double(a.x / size.width)
+        let ay = Double(a.y / size.height)
+        let dx = Double((b.x - a.x) / size.width)
+        let dy = Double((b.y - a.y) / size.height)
+        let side = Geo.clamp(max(abs(dx), abs(dy)), 0.0, 1.0)
+        let x = dx < 0 ? ax - side : ax
+        let y = dy < 0 ? ay - side : ay
+        return NBox(x: Geo.clamp(x, 0, 1 - side), y: Geo.clamp(y, 0, 1 - side), w: side, h: side)
+    }
+
+    private static func place(_ box: NBox, in size: CGSize) -> CGRect {
+        return CGRect(x: CGFloat(box.x) * size.width, y: CGFloat(box.y) * size.height,
+                      width: CGFloat(box.w) * size.width, height: CGFloat(box.h) * size.height)
     }
 }

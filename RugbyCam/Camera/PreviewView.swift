@@ -4,13 +4,13 @@ import UIKit
 
 /// Shows the live camera picture, fitted inside the screen (never cropped).
 struct CameraPreview: UIViewRepresentable {
-    let session: AVCaptureSession
+    let camera: CameraEngine
 
     func makeUIView(context: Context) -> PreviewUIView {
         let view = PreviewUIView()
         view.backgroundColor = .black
-        view.previewLayer.session = session
         view.previewLayer.videoGravity = .resizeAspect
+        camera.attachPreview(view.previewLayer)
         return view
     }
 

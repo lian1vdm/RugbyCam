@@ -115,6 +115,9 @@ struct AppSettings: Codable, Equatable {
     var saveHardFrames = false        // keep pictures of moments the ball is lost while recording
     var importEvery = 1.0             // seconds between two looks when importing a video
     var importKeep = 60               // pictures kept per imported video
+    var askFraming = true             // after the ball question, ask how the picture should be framed
+    var situationFraming = true       // frame scrums, lineouts, kicks and breaks in their own way
+    var backupRecording = false       // record a second, wide video with the ultra-wide lens
 
     // iPad remote
     var remoteEnabled = false

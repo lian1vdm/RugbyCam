@@ -24,10 +24,14 @@
 		1AABF28B0520212DC4D8CD42 /* Detector.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE29E79FF98F0D8312EFFB02 /* Detector.swift */; };
 		B332D982929FD9E65E23BB9D /* Director.swift in Sources */ = {isa = PBXBuildFile; fileRef = 315E7929F61BDAD6651F01FD /* Director.swift */; };
 		D882466F26808D215155B736 /* Geometry.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6D1BAAC0A3118571E802174 /* Geometry.swift */; };
+		72AC0E5879D02896F532E0E7 /* Situation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 789332B65EE89C09F0B870D6 /* Situation.swift */; };
 		FCB4F91C7CD5E968C6331A9E /* TrackingEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EC786310FD3B6D6DFABA1F5 /* TrackingEngine.swift */; };
+		E40A79AA08754220D39C45FB /* FramingStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26A1C36401FB1ED4B6BD84C9 /* FramingStore.swift */; };
+		B0E2D4D2ECE27B4CB53E2B71 /* PictureFraming.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67AE3305712F5020F1C37A89 /* PictureFraming.swift */; };
 		DF3E29696F74A5D7EA4F9C80 /* TrainingStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A6E45C678D69CFE7FA25A3E /* TrainingStore.swift */; };
 		7E667D105C4316CABCA1AFBA /* VideoScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3859582E8BFD99188252E3CA /* VideoScanner.swift */; };
 		0532C35BBBB7B4BA8FAC15BD /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50771F7C7D443C9E52C6A70F /* ContentView.swift */; };
+		3733B3E78C982D48169037A7 /* FrameEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AF04F6BC4BA4A26E9591643 /* FrameEditor.swift */; };
 		3DAA94F75F3C5300121701F8 /* MatchControls.swift in Sources */ = {isa = PBXBuildFile; fileRef = 334670B264C0E881F2F33999 /* MatchControls.swift */; };
 		76B88717C8DC992D8FA0BA49 /* OverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D59A2B95F8A6C2633C54B80 /* OverlayView.swift */; };
 		17C3438F4A745D29408A0291 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A91A4F106B628CC2264E441 /* SettingsView.swift */; };
@@ -58,10 +62,14 @@
 		BE29E79FF98F0D8312EFFB02 /* Detector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Detector.swift; sourceTree = "<group>"; };
 		315E7929F61BDAD6651F01FD /* Director.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Director.swift; sourceTree = "<group>"; };
 		B6D1BAAC0A3118571E802174 /* Geometry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Geometry.swift; sourceTree = "<group>"; };
+		789332B65EE89C09F0B870D6 /* Situation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Situation.swift; sourceTree = "<group>"; };
 		6EC786310FD3B6D6DFABA1F5 /* TrackingEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackingEngine.swift; sourceTree = "<group>"; };
+		26A1C36401FB1ED4B6BD84C9 /* FramingStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FramingStore.swift; sourceTree = "<group>"; };
+		67AE3305712F5020F1C37A89 /* PictureFraming.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PictureFraming.swift; sourceTree = "<group>"; };
 		8A6E45C678D69CFE7FA25A3E /* TrainingStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingStore.swift; sourceTree = "<group>"; };
 		3859582E8BFD99188252E3CA /* VideoScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoScanner.swift; sourceTree = "<group>"; };
 		50771F7C7D443C9E52C6A70F /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		7AF04F6BC4BA4A26E9591643 /* FrameEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameEditor.swift; sourceTree = "<group>"; };
 		334670B264C0E881F2F33999 /* MatchControls.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatchControls.swift; sourceTree = "<group>"; };
 		0D59A2B95F8A6C2633C54B80 /* OverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverlayView.swift; sourceTree = "<group>"; };
 		9A91A4F106B628CC2264E441 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -177,6 +185,7 @@
 				BE29E79FF98F0D8312EFFB02 /* Detector.swift */,
 				315E7929F61BDAD6651F01FD /* Director.swift */,
 				B6D1BAAC0A3118571E802174 /* Geometry.swift */,
+				789332B65EE89C09F0B870D6 /* Situation.swift */,
 				6EC786310FD3B6D6DFABA1F5 /* TrackingEngine.swift */,
 			);
 			path = Tracking;
@@ -185,6 +194,8 @@
 		DA4FEC2857A19D72D4DDB434 /* Training */ = {
 			isa = PBXGroup;
 			children = (
+				26A1C36401FB1ED4B6BD84C9 /* FramingStore.swift */,
+				67AE3305712F5020F1C37A89 /* PictureFraming.swift */,
 				8A6E45C678D69CFE7FA25A3E /* TrainingStore.swift */,
 				3859582E8BFD99188252E3CA /* VideoScanner.swift */,
 			);
@@ -195,6 +206,7 @@
 			isa = PBXGroup;
 			children = (
 				50771F7C7D443C9E52C6A70F /* ContentView.swift */,
+				7AF04F6BC4BA4A26E9591643 /* FrameEditor.swift */,
 				334670B264C0E881F2F33999 /* MatchControls.swift */,
 				0D59A2B95F8A6C2633C54B80 /* OverlayView.swift */,
 				9A91A4F106B628CC2264E441 /* SettingsView.swift */,
@@ -296,10 +308,14 @@
 				1AABF28B0520212DC4D8CD42 /* Detector.swift in Sources */,
 				B332D982929FD9E65E23BB9D /* Director.swift in Sources */,
 				D882466F26808D215155B736 /* Geometry.swift in Sources */,
+				72AC0E5879D02896F532E0E7 /* Situation.swift in Sources */,
 				FCB4F91C7CD5E968C6331A9E /* TrackingEngine.swift in Sources */,
+				E40A79AA08754220D39C45FB /* FramingStore.swift in Sources */,
+				B0E2D4D2ECE27B4CB53E2B71 /* PictureFraming.swift in Sources */,
 				DF3E29696F74A5D7EA4F9C80 /* TrainingStore.swift in Sources */,
 				7E667D105C4316CABCA1AFBA /* VideoScanner.swift in Sources */,
 				0532C35BBBB7B4BA8FAC15BD /* ContentView.swift in Sources */,
+				3733B3E78C982D48169037A7 /* FrameEditor.swift in Sources */,
 				3DAA94F75F3C5300121701F8 /* MatchControls.swift in Sources */,
 				76B88717C8DC992D8FA0BA49 /* OverlayView.swift in Sources */,
 				17C3438F4A745D29408A0291 /* SettingsView.swift in Sources */,

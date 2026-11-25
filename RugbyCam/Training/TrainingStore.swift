@@ -236,10 +236,12 @@ final class TrainingStore: ObservableObject {
         }
         let imagesFolder = self.imagesFolder
         let labelsFolder = self.labelsFolder
+        let framing = folder.appendingPathComponent("framing/examples.jsonl")
         queue.async {
             let result: Result<URL, Error>
             do {
-                result = .success(try TrainingStore.packZip(items: toSend, images: imagesFolder, labels: labelsFolder))
+                result = .success(try TrainingStore.packZip(items: toSend, images: imagesFolder, labels: labelsFolder,
+                                                            framing: framing))
             } catch {
                 result = .failure(error)
             }
@@ -258,7 +260,7 @@ final class TrainingStore: ObservableObject {
         save()
     }
 
-    private static func packZip(items: [TrainingItem], images: URL, labels: URL) throws -> URL {
+    private static func packZip(items: [TrainingItem], images: URL, labels: URL, framing: URL) throws -> URL {
         let files = FileManager.default
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
@@ -282,6 +284,10 @@ final class TrainingStore: ObservableObject {
                 try files.copyItem(at: image, to: imageTarget)
             }
             try files.copyItem(at: label, to: stagingLabels.appendingPathComponent(item.id + ".txt"))
+        }
+        // The framing examples (boxes only, no pictures), for training a zoom model later.
+        if files.fileExists(atPath: framing.path) {
+            try? files.copyItem(at: framing, to: staging.appendingPathComponent("framing.jsonl"))
         }
         let list = items.map { $0.id }.joined(separator: "\n")
         try list.write(to: staging.appendingPathComponent("ids.txt"), atomically: true, encoding: .utf8)

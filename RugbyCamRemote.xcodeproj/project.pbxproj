@@ -7,12 +7,16 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AEEFA7671AD0207D5DF97AAA /* BoxEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA3C43A47D17AA41D4C9693B /* BoxEditor.swift */; };
 		924AA400CACD37C82C43F935 /* ConnectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4244581EDAC462D0AE8F7CDB /* ConnectView.swift */; };
 		9C8F181B987EC4B028F6477C /* ControlView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1287922F2933EF538C71C04E /* ControlView.swift */; };
+		6DD65C115565BA07F5398A67 /* FrameEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA1BDFD525DBE28F78B5D040 /* FrameEditor.swift */; };
 		67D78DE52F55AAE2B36DDF51 /* PhoneClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 743B88078E1FDD798858675A /* PhoneClient.swift */; };
 		BAA61D5F55546C88F55D50DC /* PhoneFinder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E0A769382E5750307D80EA5 /* PhoneFinder.swift */; };
 		70FA5D9FE2CCE7B8A805FEDB /* RemoteApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43AA91A7C0F0DD99FB503325 /* RemoteApp.swift */; };
 		7E47B542E162AD6411EB8973 /* RemoteSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C55F2F9F345991203C79C0BF /* RemoteSettingsView.swift */; };
+		C68EA21A47799DC4B39273AC /* Shared.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A17BD35515F36677D8EA854 /* Shared.swift */; };
+		AFED0144741AAAC881CB8D23 /* TrainingRemoteView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00B4CD374AE45B74F47C08CA /* TrainingRemoteView.swift */; };
 		2A84E45B840BFC29EE8B01CB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 74532050809EE2A095734FF8 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
@@ -20,12 +24,16 @@
 		36DBD843FF085AAE85679908 /* RugbyCamRemote.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RugbyCamRemote.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		75EFB57BA313A181F7D18441 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		74532050809EE2A095734FF8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		EA3C43A47D17AA41D4C9693B /* BoxEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoxEditor.swift; sourceTree = "<group>"; };
 		4244581EDAC462D0AE8F7CDB /* ConnectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectView.swift; sourceTree = "<group>"; };
 		1287922F2933EF538C71C04E /* ControlView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlView.swift; sourceTree = "<group>"; };
+		FA1BDFD525DBE28F78B5D040 /* FrameEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameEditor.swift; sourceTree = "<group>"; };
 		743B88078E1FDD798858675A /* PhoneClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneClient.swift; sourceTree = "<group>"; };
 		5E0A769382E5750307D80EA5 /* PhoneFinder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneFinder.swift; sourceTree = "<group>"; };
 		43AA91A7C0F0DD99FB503325 /* RemoteApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteApp.swift; sourceTree = "<group>"; };
 		C55F2F9F345991203C79C0BF /* RemoteSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteSettingsView.swift; sourceTree = "<group>"; };
+		8A17BD35515F36677D8EA854 /* Shared.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Shared.swift; sourceTree = "<group>"; };
+		00B4CD374AE45B74F47C08CA /* TrainingRemoteView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingRemoteView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -58,12 +66,16 @@
 		9B538C02D22F8AAFC6B1CCFC /* RugbyCamRemote */ = {
 			isa = PBXGroup;
 			children = (
+				EA3C43A47D17AA41D4C9693B /* BoxEditor.swift */,
 				4244581EDAC462D0AE8F7CDB /* ConnectView.swift */,
 				1287922F2933EF538C71C04E /* ControlView.swift */,
+				FA1BDFD525DBE28F78B5D040 /* FrameEditor.swift */,
 				743B88078E1FDD798858675A /* PhoneClient.swift */,
 				5E0A769382E5750307D80EA5 /* PhoneFinder.swift */,
 				43AA91A7C0F0DD99FB503325 /* RemoteApp.swift */,
 				C55F2F9F345991203C79C0BF /* RemoteSettingsView.swift */,
+				8A17BD35515F36677D8EA854 /* Shared.swift */,
+				00B4CD374AE45B74F47C08CA /* TrainingRemoteView.swift */,
 				74532050809EE2A095734FF8 /* Assets.xcassets */,
 				75EFB57BA313A181F7D18441 /* Info.plist */,
 			);
@@ -139,12 +151,16 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AEEFA7671AD0207D5DF97AAA /* BoxEditor.swift in Sources */,
 				924AA400CACD37C82C43F935 /* ConnectView.swift in Sources */,
 				9C8F181B987EC4B028F6477C /* ControlView.swift in Sources */,
+				6DD65C115565BA07F5398A67 /* FrameEditor.swift in Sources */,
 				67D78DE52F55AAE2B36DDF51 /* PhoneClient.swift in Sources */,
 				BAA61D5F55546C88F55D50DC /* PhoneFinder.swift in Sources */,
 				70FA5D9FE2CCE7B8A805FEDB /* RemoteApp.swift in Sources */,
 				7E47B542E162AD6411EB8973 /* RemoteSettingsView.swift in Sources */,
+				C68EA21A47799DC4B39273AC /* Shared.swift in Sources */,
+				AFED0144741AAAC881CB8D23 /* TrainingRemoteView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -33,6 +33,11 @@ struct PhoneStatus: Decodable {
     var awayScore: Int?
     var period: Int?
     var scoreInVideo: Bool?
+    var situation: String?
+    var situationKey: String?
+    var appFrame: [Double]?
+    var backup: String?
+    var trainingPending: Int?
 }
 
 /// Talks to RugbyCam on the iPhone over the local network.
@@ -278,6 +283,40 @@ final class PhoneClient: ObservableObject {
             try? await Task.sleep(nanoseconds: 200_000_000)
             _ = await get("/cmd", items, timeout: 1.0)
         }
+    }
+
+    // MARK: - Framing and training pictures
+
+    @Published private(set) var lastNote: String?
+
+    /// Shows the iPhone how you would frame the live picture right now.
+    func sendFrame(_ frame: NBox) {
+        Task {
+            if let answer = await json("/frame", frame.queryItems) {
+                lastNote = (answer["note"] as? String) ?? (answer["error"] as? String)
+                try? await Task.sleep(nanoseconds: 7_000_000_000)
+                lastNote = nil
+            }
+        }
+    }
+
+    /// A JSON answer from the iPhone, or nil when it did not answer.
+    func json(_ path: String, _ items: [URLQueryItem] = [], timeout: TimeInterval = 8.0) async -> [String: Any]? {
+        let result = await get(path, items, timeout: timeout)
+        guard case let (data, code)? = result else { return nil }
+        if code == 403 {
+            link = .wrongPin
+            stopLoops()
+            return nil
+        }
+        guard code == 200 else { return nil }
+        return (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+    }
+
+    func trainingImage(_ id: String) async -> UIImage? {
+        let result = await get("/train/image", [URLQueryItem(name: "id", value: id)], timeout: 10.0)
+        guard case let (data, code)? = result, code == 200 else { return nil }
+        return UIImage(data: data)
     }
 
     // MARK: - Settings

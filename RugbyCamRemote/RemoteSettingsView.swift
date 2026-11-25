@@ -11,6 +11,7 @@ struct SettingField: Identifiable {
         case mount
         case model
         case note
+        case info                 // shows the iPhone's text for this key
     }
 
     let id: String
@@ -39,6 +40,8 @@ struct SettingField: Identifiable {
                          .choice([("hevc", "HEVC (smaller files)"), ("h264", "H.264 (most compatible)")])),
             SettingField("saveToPhotos", "Save recordings to Photos", .toggle),
             SettingField("stabilisation", "Stabilise the picture", .toggle, lockedWhileRecording: true),
+            SettingField("backupRecording", "Also record a wide backup (0.5x lens)", .toggle, lockedWhileRecording: true),
+            SettingField("_backup", "Backup", .info),
         ]),
         ("Tracking", [
             SettingField("showOverlay", "Show what the tracking sees", .toggle),
@@ -50,6 +53,8 @@ struct SettingField: Identifiable {
             SettingField("detectionRate", "Looks per second", .slider(min: 4, max: 30, step: 1, format: SettingField.whole)),
             SettingField("ballConfidence", "Weakest ball detection to accept", .slider(min: 0.05, max: 0.6, step: 0.01, format: SettingField.twoPlaces)),
             SettingField("searchZoom", "Ball search zoom", .slider(min: 1, max: 4, step: 0.1, format: { String(format: "%.1fx", $0) })),
+            SettingField("situationFraming", "Frame scrums, lineouts, kicks and breaks in their own way", .toggle),
+            SettingField("_learned", "Framing you showed", .info),
         ]),
         ("Mount", [
             SettingField("_mount", "Status", .mount),
@@ -60,6 +65,7 @@ struct SettingField: Identifiable {
         ]),
         ("Training", [
             SettingField("saveHardFrames", "While recording, save moments the ball is lost", .toggle),
+            SettingField("askFraming", "Also ask how to frame each picture", .toggle),
             SettingField("importKeep", "Pictures to keep per imported video", .slider(min: 20, max: 200, step: 10, format: SettingField.whole)),
             SettingField("_ballModel", "Ball model", .model),
         ]),
@@ -199,6 +205,13 @@ struct RemoteSettingsView: View {
             Text(field.title)
                 .font(.footnote)
                 .foregroundColor(Theme.dim)
+        case .info:
+            VStack(alignment: .leading, spacing: 4) {
+                Text(field.title)
+                Text(client.text(field.id).isEmpty ? "Nothing yet" : client.text(field.id))
+                    .font(.footnote)
+                    .foregroundColor(Theme.dim)
+            }
         }
     }
 

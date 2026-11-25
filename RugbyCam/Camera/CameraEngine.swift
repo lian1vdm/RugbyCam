@@ -21,6 +21,11 @@ struct CameraInfo: Equatable {
     var wideZoom = 1.0            // zoom factor of the 1x lens
     var displayMultiplier = 1.0   // zoom shown on screen = zoom factor x this
     var lensStops: [LensStop] = []
+    var backupActive = false      // a second, wide camera records the backup
+    var backupWidth = 0
+    var backupHeight = 0
+    var backupFPS = 0
+    var backupNote: String?       // why the backup is not possible, if it was asked for
 }
 
 enum CameraError: LocalizedError {
@@ -42,12 +47,21 @@ protocol CameraEngineDelegate: AnyObject {
     func cameraEngine(_ engine: CameraEngine, didOutputVideo sampleBuffer: CMSampleBuffer)
     func cameraEngine(_ engine: CameraEngine, didOutputAudio sampleBuffer: CMSampleBuffer)
     func cameraEngineDidDropVideoFrame(_ engine: CameraEngine)
+    /// Frames of the wide backup camera (only while the backup is on).
+    func cameraEngine(_ engine: CameraEngine, didOutputBackupVideo sampleBuffer: CMSampleBuffer)
 }
 
 /// Owns the camera: picks the lens set and the 4K60 format, delivers frames,
 /// and moves the zoom.
 final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureAudioDataOutputSampleBufferDelegate {
-    let session = AVCaptureSession()
+    /// The session in use: the normal one, or the two-camera one for the backup.
+    private(set) var session: AVCaptureSession
+    private let normalSession = AVCaptureSession()
+    private var multiSession: AVCaptureMultiCamSession?
+    private let backupOutput = AVCaptureVideoDataOutput()
+    private var backupConnection: AVCaptureConnection?
+    private var mainVideoPort: AVCaptureInput.Port?
+    private weak var previewLayer: AVCaptureVideoPreviewLayer?
     let captureQueue = DispatchQueue(label: "rugbycam.capture", qos: .userInitiated)
     weak var delegate: CameraEngineDelegate?
 
@@ -66,10 +80,12 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
     }
 
     override init() {
+        session = normalSession
         super.init()
         // If the camera stops with an error (for example after a phone call), start it again.
         let name = Notification.Name("AVCaptureSessionRuntimeErrorNotification")
-        let token = NotificationCenter.default.addObserver(forName: name, object: session, queue: nil) { [weak self] _ in
+        let token = NotificationCenter.default.addObserver(forName: name, object: nil, queue: nil) { [weak self] note in
+            guard note.object is AVCaptureSession else { return }
             self?.start()
         }
         observers.append(token)
@@ -117,14 +133,74 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
 
     // MARK: - Set-up
 
-    func configure(quality: CaptureQuality, stabilise: Bool, completion: @escaping (Result<CameraInfo, Error>) -> Void) {
+    func configure(quality: CaptureQuality, stabilise: Bool, backup: Bool = false,
+                   completion: @escaping (Result<CameraInfo, Error>) -> Void) {
         sessionQueue.async {
+            let wasRunning = self.session.isRunning
+            if wasRunning {
+                self.session.stopRunning()
+            }
             do {
-                let info = try self.configureSession(requested: quality, stabilise: stabilise)
+                var info: CameraInfo
+                if backup, let multi = self.configureMulti(requested: quality, stabilise: stabilise) {
+                    info = multi
+                } else {
+                    info = try self.configureSession(requested: quality, stabilise: stabilise)
+                    if backup {
+                        info.backupNote = AVCaptureMultiCamSession.isMultiCamSupported
+                            ? "This phone cannot film with two cameras at this quality, so there is no backup."
+                            : "This phone cannot film with two cameras at once, so there is no backup."
+                    }
+                }
+                self.info = info
+                self.connectPreview()
+                if wasRunning {
+                    self.session.startRunning()
+                }
                 completion(.success(info))
             } catch {
                 completion(.failure(error))
             }
+        }
+    }
+
+    /// The screen's preview. Call once from the view.
+    func attachPreview(_ layer: AVCaptureVideoPreviewLayer) {
+        previewLayer = layer
+        layer.session = normalSession
+        sessionQueue.async {
+            self.connectPreview()
+        }
+    }
+
+    /// Shows the current session on the preview. Session queue.
+    private func connectPreview() {
+        guard let layer = previewLayer else { return }
+        if let multi = multiSession, session === multi {
+            DispatchQueue.main.sync {
+                layer.setSessionWithNoConnection(multi)
+            }
+            guard let port = mainVideoPort else { return }
+            let connection = AVCaptureConnection(inputPort: port, videoPreviewLayer: layer)
+            multi.beginConfiguration()
+            if multi.canAddConnection(connection) {
+                multi.addConnection(connection)
+            }
+            multi.commitConfiguration()
+        } else {
+            let normal = normalSession
+            DispatchQueue.main.sync {
+                if layer.session !== normal {
+                    layer.session = normal
+                }
+            }
+        }
+    }
+
+    /// Pauses or resumes the backup camera's pictures (for example when the phone is hot).
+    func setBackupEnabled(_ on: Bool) {
+        sessionQueue.async {
+            self.backupConnection?.isEnabled = on
         }
     }
 
@@ -148,6 +224,9 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
         guard let pick = CameraEngine.pickDevice(for: requested) else {
             throw CameraError.noCamera
         }
+        clearMulti()
+        self.session = normalSession
+        let session = normalSession
 
         session.beginConfiguration()
         defer { session.commitConfiguration() }
@@ -247,11 +326,12 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
         return nil
     }
 
-    private static func bestFormat(for device: AVCaptureDevice, quality: CaptureQuality) -> AVCaptureDevice.Format? {
+    private static func bestFormat(for device: AVCaptureDevice, quality: CaptureQuality,
+                                   multiCam: Bool = false) -> AVCaptureDevice.Format? {
         var best: AVCaptureDevice.Format?
         var bestScore = -1.0
         let wantedFPS = Double(quality.fps)
-        for format in device.formats {
+        for format in device.formats where !multiCam || format.isMultiCamSupported {
             let size = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
             guard Int(size.width) == quality.width, Int(size.height) == quality.height else {
                 continue
@@ -330,6 +410,244 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
         return String(format: "%.1f", displayed)
     }
 
+    // MARK: - Two cameras (main + wide backup)
+
+    /// Removes everything from the two-camera session. Session queue.
+    private func clearMulti() {
+        backupConnection = nil
+        mainVideoPort = nil
+        guard let multi = multiSession else { return }
+        if multi.isRunning {
+            multi.stopRunning()
+        }
+        multi.beginConfiguration()
+        for connection in multi.connections {
+            multi.removeConnection(connection)
+        }
+        for input in multi.inputs {
+            multi.removeInput(input)
+        }
+        for output in multi.outputs {
+            multi.removeOutput(output)
+        }
+        multi.commitConfiguration()
+    }
+
+    /// Removes everything from the normal session, so its cameras are free. Session queue.
+    private func clearNormal() {
+        let normal = normalSession
+        if normal.isRunning {
+            normal.stopRunning()
+        }
+        normal.beginConfiguration()
+        for input in normal.inputs {
+            normal.removeInput(input)
+        }
+        for output in normal.outputs {
+            normal.removeOutput(output)
+        }
+        normal.commitConfiguration()
+    }
+
+    /// Main camera (wide and tele lenses) plus the ultra-wide lens for the backup.
+    /// Returns nil when the phone cannot do it; then the normal session is used.
+    private func configureMulti(requested: CaptureQuality, stabilise: Bool) -> CameraInfo? {
+        guard AVCaptureMultiCamSession.isMultiCamSupported else { return nil }
+        let types: [AVCaptureDevice.DeviceType] = [
+            .builtInDualCamera, .builtInWideAngleCamera, .builtInUltraWideCamera, .builtInTelephotoCamera
+        ]
+        let discovery = AVCaptureDevice.DiscoverySession(deviceTypes: types, mediaType: .video, position: .back)
+        let sets = discovery.supportedMultiCamDeviceSets
+        guard let ultra = discovery.devices.first(where: { $0.deviceType == .builtInUltraWideCamera }) else {
+            return nil
+        }
+        var main: AVCaptureDevice?
+        for type in [AVCaptureDevice.DeviceType.builtInDualCamera, .builtInWideAngleCamera] {
+            if let candidate = discovery.devices.first(where: { $0.deviceType == type }),
+               sets.contains(where: { $0.contains(candidate) && $0.contains(ultra) }) {
+                main = candidate
+                break
+            }
+        }
+        guard let mainDevice = main else { return nil }
+        clearNormal()
+        var quality: CaptureQuality? = requested
+        while let wanted = quality {
+            if let info = tryMulti(main: mainDevice, ultra: ultra, quality: wanted, stabilise: stabilise) {
+                return info
+            }
+            quality = wanted.fallback
+        }
+        clearMulti()
+        return nil
+    }
+
+    private static func backupFormat(for device: AVCaptureDevice) -> AVCaptureDevice.Format? {
+        var best: AVCaptureDevice.Format?
+        var bestScore = -1.0e9
+        for format in device.formats where format.isMultiCamSupported {
+            let size = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
+            let width = Int(size.width)
+            let height = Int(size.height)
+            guard width >= 1280, width <= 1920, width * 9 == height * 16 else { continue }
+            let thirty = format.videoSupportedFrameRateRanges.contains { $0.minFrameRate <= 30 && $0.maxFrameRate >= 30 }
+            guard thirty else { continue }
+            var score = Double(width)
+            if CMFormatDescriptionGetMediaSubType(format.formatDescription) == kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange {
+                score += 10000.0
+            }
+            if score > bestScore {
+                best = format
+                bestScore = score
+            }
+        }
+        return best
+    }
+
+    private func tryMulti(main: AVCaptureDevice, ultra: AVCaptureDevice, quality: CaptureQuality,
+                          stabilise: Bool) -> CameraInfo? {
+        guard let mainFormat = CameraEngine.bestFormat(for: main, quality: quality, multiCam: true),
+              let ultraFormat = CameraEngine.backupFormat(for: ultra) else {
+            return nil
+        }
+        clearMulti()
+        let multi = multiSession ?? AVCaptureMultiCamSession()
+        multiSession = multi
+
+        multi.beginConfiguration()
+        var ok = true
+        var mainPort: AVCaptureInput.Port?
+        var backup: AVCaptureConnection?
+        do {
+            let mainInput = try AVCaptureDeviceInput(device: main)
+            let ultraInput = try AVCaptureDeviceInput(device: ultra)
+            if multi.canAddInput(mainInput) && multi.canAddInput(ultraInput) {
+                multi.addInputWithNoConnections(mainInput)
+                multi.addInputWithNoConnections(ultraInput)
+            } else {
+                ok = false
+            }
+
+            if ok {
+                try main.lockForConfiguration()
+                main.activeFormat = mainFormat
+                let frame = CMTime(value: 1, timescale: CMTimeScale(quality.fps))
+                main.activeVideoMinFrameDuration = frame
+                main.activeVideoMaxFrameDuration = frame
+                if main.isFocusModeSupported(.continuousAutoFocus) {
+                    main.focusMode = .continuousAutoFocus
+                }
+                if main.isExposureModeSupported(.continuousAutoExposure) {
+                    main.exposureMode = .continuousAutoExposure
+                }
+                main.unlockForConfiguration()
+
+                try ultra.lockForConfiguration()
+                ultra.activeFormat = ultraFormat
+                let thirty = CMTime(value: 1, timescale: 30)
+                ultra.activeVideoMinFrameDuration = thirty
+                ultra.activeVideoMaxFrameDuration = thirty
+                if ultra.isFocusModeSupported(.continuousAutoFocus) {
+                    ultra.focusMode = .continuousAutoFocus
+                }
+                if ultra.isExposureModeSupported(.continuousAutoExposure) {
+                    ultra.exposureMode = .continuousAutoExposure
+                }
+                ultra.unlockForConfiguration()
+
+                videoOutput.videoSettings = [
+                    kCVPixelBufferPixelFormatTypeKey as String: Int(kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange)
+                ]
+                videoOutput.alwaysDiscardsLateVideoFrames = false
+                videoOutput.setSampleBufferDelegate(self, queue: captureQueue)
+                backupOutput.videoSettings = [
+                    kCVPixelBufferPixelFormatTypeKey as String: Int(kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange)
+                ]
+                backupOutput.alwaysDiscardsLateVideoFrames = true
+                backupOutput.setSampleBufferDelegate(self, queue: captureQueue)
+                if multi.canAddOutput(videoOutput) && multi.canAddOutput(backupOutput) {
+                    multi.addOutputWithNoConnections(videoOutput)
+                    multi.addOutputWithNoConnections(backupOutput)
+                } else {
+                    ok = false
+                }
+
+                mainPort = mainInput.ports(for: .video, sourceDeviceType: main.deviceType,
+                                           sourceDevicePosition: main.position).first
+                let ultraPort = ultraInput.ports(for: .video, sourceDeviceType: ultra.deviceType,
+                                                 sourceDevicePosition: ultra.position).first
+                if ok, let port = mainPort, let wide = ultraPort {
+                    let mainConnection = AVCaptureConnection(inputPorts: [port], output: videoOutput)
+                    let backupConnectionNew = AVCaptureConnection(inputPorts: [wide], output: backupOutput)
+                    if multi.canAddConnection(mainConnection) && multi.canAddConnection(backupConnectionNew) {
+                        multi.addConnection(mainConnection)
+                        multi.addConnection(backupConnectionNew)
+                        for connection in [mainConnection, backupConnectionNew] {
+                            if connection.isVideoRotationAngleSupported(0) {
+                                connection.videoRotationAngle = 0
+                            }
+                        }
+                        if mainConnection.isVideoStabilizationSupported {
+                            mainConnection.preferredVideoStabilizationMode = stabilise ? .standard : .off
+                        }
+                        backup = backupConnectionNew
+                    } else {
+                        ok = false
+                    }
+                } else {
+                    ok = false
+                }
+
+                // Sound for both files.
+                if ok, AVCaptureDevice.authorizationStatus(for: .audio) == .authorized,
+                   let microphone = AVCaptureDevice.default(for: .audio),
+                   let microphoneInput = try? AVCaptureDeviceInput(device: microphone),
+                   multi.canAddInput(microphoneInput) {
+                    multi.addInputWithNoConnections(microphoneInput)
+                    audioOutput.setSampleBufferDelegate(self, queue: captureQueue)
+                    if multi.canAddOutput(audioOutput) {
+                        multi.addOutputWithNoConnections(audioOutput)
+                        if let audioPort = microphoneInput.ports(for: .audio, sourceDeviceType: microphone.deviceType,
+                                                                 sourceDevicePosition: microphone.position).first {
+                            let audioConnection = AVCaptureConnection(inputPorts: [audioPort], output: audioOutput)
+                            if multi.canAddConnection(audioConnection) {
+                                multi.addConnection(audioConnection)
+                            }
+                        }
+                    }
+                }
+            }
+        } catch {
+            ok = false
+        }
+        multi.commitConfiguration()
+
+        // More than the camera hardware can do at once: try a lower quality.
+        if !ok || multi.hardwareCost > 1.0 {
+            clearMulti()
+            return nil
+        }
+
+        var described = CameraEngine.describe(device: main, format: mainFormat, quality: quality)
+        let backupSize = CMVideoFormatDescriptionGetDimensions(ultraFormat.formatDescription)
+        described.backupActive = true
+        described.backupWidth = Int(backupSize.width)
+        described.backupHeight = Int(backupSize.height)
+        described.backupFPS = 30
+        do {
+            try main.lockForConfiguration()
+            main.videoZoomFactor = CGFloat(described.wideZoom)
+            main.unlockForConfiguration()
+        } catch {
+            // The zoom starts wherever it is.
+        }
+        device = main
+        backupConnection = backup
+        mainVideoPort = mainPort
+        session = multi
+        return described
+    }
+
     // MARK: - Zoom
 
     /// Moves the zoom. With a duration it glides there; with zero it jumps.
@@ -403,6 +721,8 @@ final class CameraEngine: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         if output === videoOutput {
             delegate?.cameraEngine(self, didOutputVideo: sampleBuffer)
+        } else if output === backupOutput {
+            delegate?.cameraEngine(self, didOutputBackupVideo: sampleBuffer)
         } else if output === audioOutput {
             delegate?.cameraEngine(self, didOutputAudio: sampleBuffer)
         }

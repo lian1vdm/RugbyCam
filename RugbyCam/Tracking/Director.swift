@@ -32,6 +32,12 @@ struct DirectorParams {
     var minPlayersForZoomIn = 3   // with fewer players in view, never zoom in
     var maxPlayerHeight = 0.40    // do not zoom in until players are taller than this
     var tiltEnabled = true
+    var situationsEnabled = true  // use the game situations (scrum, kick, ...) for the framing
+    var situationSettle = 0.5     // a new situation must last this long before the framing changes
+    var kickHold = 2.5            // keep the wide kick framing this long
+    var breakHold = 1.0
+    var pileMaxPlayerHeight = 0.50
+    var breakLead = 0.10          // leave this share of the frame free ahead of a runner
 }
 
 struct DirectorInput {
@@ -45,6 +51,9 @@ struct DirectorInput {
     var wideZoom: Double          // zoom factor of the 1x lens
     var mountActive: Bool
     var autoZoom: Bool
+    var ballVelocity: NPoint? = nil   // frame widths (x) and heights (y) per second
+    var learned: [String: LearnedFrame] = [:]
+    var displayMultiplier = 1.0
 }
 
 enum DirectorState: String {
@@ -61,6 +70,9 @@ struct DirectorOutput {
     var state = DirectorState.searching
     var actionBox: NBox?
     var lookAt: NPoint?
+    var situation = PlaySituation.lost
+    var features = FramingFeatures()
+    var frame: NBox?              // the part of the current picture the zoom is heading for
 }
 
 /// Decides where the camera should point and how far it should zoom.
@@ -89,6 +101,17 @@ final class Director {
     private var ballWeight = 0.0
     private var lastBall: NPoint?
 
+    // Game situation
+    private var situation = PlaySituation.open
+    private var candidate = PlaySituation.open
+    private var candidateSince = -1.0e9
+    private var situationSince = -1.0e9
+    private var prevCx = 0.5
+    private var prevCy = 0.5
+    private var groupSpeed = 0.0
+    private var smCluster: NBox?
+    private var lastFeatures = FramingFeatures()
+
     func reset() {
         lastTime = nil
         zoomInitialised = false
@@ -109,6 +132,110 @@ final class Director {
         playerHeight = 0.1
         ballWeight = 0.0
         lastBall = nil
+        situation = .open
+        candidate = .open
+        candidateSince = -1.0e9
+        situationSince = -1.0e9
+        groupSpeed = 0.0
+        smCluster = nil
+    }
+
+    // MARK: - Game situation
+
+    /// Guesses the situation from this look and keeps it steady: a new one must
+    /// last `situationSettle` seconds, except a kick, which counts at once.
+    private func updateSituation(_ i: DirectorInput, dt: Double) -> PlaySituation {
+        let p = params
+        // How fast the group moves (smoothed centre, so it is calm).
+        if havePlayers {
+            let dx = smCx - prevCx
+            let dy = (smCy - prevCy) * FramingMath.heightOverWidth
+            let speed = (dx * dx + dy * dy).squareRoot() / max(dt, 0.01)
+            groupSpeed += (speed - groupSpeed) * (1.0 - exp(-dt / 0.5))
+            prevCx = smCx
+            prevCy = smCy
+        }
+
+        var features = FramingFeatures()
+        features.players = i.players.count
+        features.zoom = i.zoom * i.displayMultiplier
+        features.groupSpeed = groupSpeed
+        let cluster = FramingMath.compactCluster(i.players)
+        features.compactShare = cluster.share
+        features.lineRatio = FramingMath.lineRatio(i.players)
+        features.spread = FramingMath.spread(i.players)
+        let ballFresh = i.ball != nil && i.ballAge <= 0.3
+        features.ballSeen = ballFresh
+        if ballFresh, let v = i.ballVelocity {
+            features.ballSpeedX = v.x
+            features.ballSpeedY = v.y
+        }
+        lastFeatures = features
+
+        if let box = cluster.box {
+            if let old = smCluster {
+                let b = 1.0 - exp(-dt / p.sizeTau)
+                smCluster = NBox(x: old.x + (box.x - old.x) * b, y: old.y + (box.y - old.y) * b,
+                                 w: old.w + (box.w - old.w) * b, h: old.h + (box.h - old.h) * b)
+            } else {
+                smCluster = box
+            }
+        }
+
+        guard p.situationsEnabled else { return .open }
+
+        // What this one look suggests.
+        var now = PlaySituation.open
+        let calm = groupSpeed < 0.08
+        if !havePlayers && i.ball == nil {
+            now = .lost
+        } else if ballFresh && features.ballSpeedY < -0.5 && abs(features.ballSpeedY) > abs(features.ballSpeedX) * 0.6 {
+            now = .kick
+        } else if ballFresh && abs(features.ballSpeedX) > 0.30 {
+            now = .breakaway
+        } else if features.players >= 6 && cluster.share >= 0.5 && calm {
+            now = .pile
+        } else if features.players >= 6 && features.lineRatio >= 3.0 && calm {
+            now = .lineout
+        }
+
+        // Keep the kick and the break framing a little while after the moment.
+        if situation == .kick && i.time - situationSince < p.kickHold && now != .kick {
+            return situation
+        }
+        if situation == .breakaway && i.time - situationSince < p.breakHold && now == .open {
+            return situation
+        }
+        if now == .kick {
+            if situation != .kick {
+                situationSince = i.time
+            }
+            situation = .kick
+            candidate = .kick
+            return situation
+        }
+        if now != candidate {
+            candidate = now
+            candidateSince = i.time
+        }
+        if candidate != situation && i.time - candidateSince >= p.situationSettle {
+            situation = candidate
+            situationSince = i.time
+        }
+        return situation
+    }
+
+    /// The share of the frame the action should take, and the offset, for this situation:
+    /// the built-in rule, moved towards what the person showed in their examples.
+    private func framing(for situation: PlaySituation, learned: [String: LearnedFrame]) -> (fill: Double, offset: Double) {
+        var fill = FramingMath.ruleFill(situation, tightness: params.fillX)
+        var offset = 0.0
+        if let memory = learned[situation.rawValue], memory.count > 0 {
+            let w = memory.weight
+            fill = fill * (1.0 - w) + memory.fill * w
+            offset = memory.offsetX * w
+        }
+        return (fill, offset)
     }
 
     // MARK: - Helpers
@@ -230,12 +357,21 @@ final class Director {
             ballWeight = max(0.0, ballWeight - weightStep)
         }
         let ball: NPoint? = ballWeight > 0.0 ? lastBall : nil
+        let current = updateSituation(i, dt: dt)
+        out.situation = current
+        out.features = lastFeatures
+        let shape = framing(for: current, learned: i.learned)
 
         var boxFound: NBox?
         var lookFound: NPoint?
         if havePlayers {
             var look = NPoint(x: smCx, y: smCy)
             var box = NBox(x: smCx - smLeft, y: smCy - smUp, w: smLeft + smRight, h: smUp + smDown)
+            if current == .pile, let cluster = smCluster {
+                // Frame the pile itself; the fill leaves room for the backs around it.
+                box = cluster
+                look = cluster.center
+            }
             if let b = ball {
                 let w = ballWeight
                 box = box.including(NPoint(x: look.x + (b.x - look.x) * w,
@@ -250,9 +386,10 @@ final class Director {
             boxFound = NBox(x: b.x, y: b.y, w: 0.0, h: 0.0)
         }
 
-        guard let box = boxFound, let look = lookFound else {
+        guard let box = boxFound, let foundLook = lookFound else {
             // Nothing to look at: stop turning, and after a while zoom out.
             out.state = .searching
+            out.situation = .lost
             panIntegral *= exp(-dt / 0.5)
             panRate = slew(panRate, 0.0, dt)
             tiltRate = slew(tiltRate, 0.0, dt)
@@ -269,6 +406,16 @@ final class Director {
         }
 
         lastActionTime = i.time
+        var look = foundLook
+        // A runner: leave room in front of them.
+        if current == .breakaway, let v = i.ballVelocity {
+            look.x += (v.x > 0 ? 1.0 : -1.0) * p.breakLead
+        }
+        // What the person showed: action a little to one side.
+        if shape.offset != 0.0 {
+            look.x += shape.offset * max(box.w, box.h) / max(shape.fill, 0.1)
+        }
+        look.x = Geo.clamp(look.x, 0.0, 1.0)
         if ballUsable {
             out.state = i.ballAge <= 0.25 ? .ball : .ballHeld
         } else {
@@ -297,6 +444,11 @@ final class Director {
             panIntegral = 0.0
         }
 
+        let usesSituation = p.situationsEnabled && current != .open
+        let fillX = usesSituation || i.learned[current.rawValue] != nil ? shape.fill : p.fillX
+        let fillY = usesSituation || i.learned[current.rawValue] != nil ? min(0.9, shape.fill + 0.05) : p.fillY
+        out.frame = FramingMath.frame(around: box, fill: fillX, offsetX: shape.offset)
+
         // ---- Zoom ----
         if !i.autoZoom {
             logZoom = log(Geo.clamp(i.zoom, i.zoomMin, i.zoomMax))
@@ -306,9 +458,15 @@ final class Director {
 
         let boxW = max(box.w, p.minBoxW)
         let boxH = max(box.h, p.minBoxH)
-        var ratioFill = min(p.fillX / boxW, p.fillY / boxH)
+        var ratioFill = min(fillX / boxW, fillY / boxH)
         if havePlayers {
-            ratioFill = min(ratioFill, p.maxPlayerHeight / max(playerHeight, 1.0e-3))
+            let tallest = current == .pile ? p.pileMaxPlayerHeight : p.maxPlayerHeight
+            ratioFill = min(ratioFill, tallest / max(playerHeight, 1.0e-3))
+        }
+        let kickStart = current == .kick && i.time - situationSince < 1.2
+        if kickStart {
+            // Go wide at once so the ball and the chasers stay in the picture.
+            ratioFill = min(ratioFill, 0.55)
         }
         if !havePlayers || playerCount < Double(p.minPlayersForZoomIn) {
             // Too little to go on (ball only, or one or two people): hold the zoom.
@@ -319,8 +477,8 @@ final class Director {
         let reachY = max(abs(box.minY - 0.5), abs(box.maxY - 0.5), 1.0e-3)
         let ratioSafe = min(half / reachX, half / reachY)
 
-        let urgent = ratioSafe < 1.0
-        let ratio = urgent ? pow(ratioSafe, p.zoomUrgency) : min(ratioFill, ratioSafe)
+        let urgent = ratioSafe < 1.0 || (kickStart && ratioFill < 1.0)
+        let ratio = ratioSafe < 1.0 ? pow(ratioSafe, p.zoomUrgency) : min(ratioFill, ratioSafe)
         let desired = Geo.clamp(i.zoom * ratio, i.zoomMin, i.zoomMax)
         let target = log(desired)
         if urgent || abs(target - logZoom) >= p.zoomDeadband {

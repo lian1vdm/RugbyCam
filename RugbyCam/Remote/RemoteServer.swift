@@ -35,6 +35,11 @@ struct RemoteStatus: Encodable {
     var awayScore = 0
     var period = 1
     var scoreInVideo = false
+    var situation = ""               // "Scrum / ruck / maul", ...
+    var situationKey = ""            // "pile", ...
+    var appFrame: [Double]?          // the framing the zoom is heading for
+    var backup = ""                  // what the wide backup recording is doing
+    var trainingPending = 0          // training pictures waiting to be checked
 }
 
 /// A very small web server inside the app. An iPad (or any browser on the same
@@ -61,6 +66,10 @@ final class RemoteServer {
     var onSet: ((String, String) -> String?)?
     /// Called on the main thread when the server starts, stops or fails.
     var onStateChange: ((String?) -> Void)?
+    /// Called on the main thread for paths the server does not know itself (training
+    /// pictures, framing). Return false if the path is unknown too. The reply may be
+    /// called later and from any thread, with the status line, the type and the body.
+    var onRoute: ((String, [String: String], @escaping (String, String, Data) -> Void) -> Bool)?
 
     private(set) var pin: String
 
@@ -258,7 +267,17 @@ final class RemoteServer {
         case "/set":
             sendSettings(on: connection, key: query["key"] ?? "", value: query["v"] ?? "")
         default:
-            send(status: "404 Not Found", type: "text/plain", body: Data("not found".utf8), on: connection)
+            DispatchQueue.main.async {
+                self.onClientSeen?()
+                let reply: (String, String, Data) -> Void = { status, type, body in
+                    self.queue.async {
+                        self.send(status: status, type: type, body: body, on: connection)
+                    }
+                }
+                if self.onRoute?(path, query, reply) != true {
+                    reply("404 Not Found", "text/plain", Data("not found".utf8))
+                }
+            }
         }
     }
 

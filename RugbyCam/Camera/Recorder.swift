@@ -176,14 +176,14 @@ final class Recorder {
 
 /// Where recordings are kept, and how they get into the Photos library.
 enum RecordingStore {
-    static func newFileURL() -> URL {
+    static func newFileURL(suffix: String = "") -> URL {
         let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         let folder = documents.appendingPathComponent("Recordings", isDirectory: true)
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "yyyy-MM-dd_HH-mm-ss"
-        return folder.appendingPathComponent("Match_\(formatter.string(from: Date())).mov")
+        return folder.appendingPathComponent("Match_\(formatter.string(from: Date()))\(suffix).mov")
     }
 
     /// Free space on the phone in gigabytes, or nil if it cannot be read.

@@ -165,3 +165,75 @@ struct ScoreboardEditor: View {
         .font(.footnote.weight(.semibold))
     }
 }
+
+/// Draw on the live picture how you would frame it right now. The camera zooms
+/// to it and the auto zoom learns from it.
+struct LiveFrameDrawer: View {
+    @EnvironmentObject var model: AppModel
+    @Binding var active: Bool
+
+    @State private var start: CGPoint?
+    @State private var current: CGPoint?
+
+    var body: some View {
+        GeometryReader { geometry in
+            let video = VideoLayout.videoRect(in: geometry.size)
+            ZStack {
+                Color.black.opacity(0.15)
+                Canvas { context, _ in
+                    if let suggestion = model.snapshot.frame {
+                        context.stroke(Path(LiveFrameDrawer.place(suggestion, in: video)), with: .color(.yellow),
+                                       style: StrokeStyle(lineWidth: 2, dash: [8, 6]))
+                    }
+                    if let box = drawnBox(in: video) {
+                        context.stroke(Path(LiveFrameDrawer.place(box, in: video)), with: .color(.green), lineWidth: 3)
+                    }
+                }
+                VStack {
+                    Spacer()
+                    Text("Draw the frame you would film now (\(model.snapshot.situation.label.lowercased())). Yellow: what the app picks.")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(Capsule().fill(Color.black.opacity(0.7)))
+                        .padding(.bottom, 70)
+                }
+            }
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 4)
+                    .onChanged { value in
+                        start = value.startLocation
+                        current = value.location
+                    }
+                    .onEnded { _ in
+                        if let box = drawnBox(in: video), box.w >= 0.04 {
+                            model.userFrame(box)
+                        }
+                        start = nil
+                        current = nil
+                        active = false
+                    }
+            )
+        }
+    }
+
+    /// The drawn box in picture coordinates, kept in the shape of the picture.
+    private func drawnBox(in video: CGRect) -> NBox? {
+        guard let a = start, let b = current, video.width > 0, video.height > 0 else { return nil }
+        let ax = Double((a.x - video.minX) / video.width)
+        let ay = Double((a.y - video.minY) / video.height)
+        let dx = Double((b.x - a.x) / video.width)
+        let dy = Double((b.y - a.y) / video.height)
+        let size = Geo.clamp(max(abs(dx), abs(dy)), 0.0, 1.0)
+        let x = dx < 0 ? ax - size : ax
+        let y = dy < 0 ? ay - size : ay
+        return NBox(x: Geo.clamp(x, 0, 1 - size), y: Geo.clamp(y, 0, 1 - size), w: size, h: size)
+    }
+
+    private static func place(_ box: NBox, in video: CGRect) -> CGRect {
+        return CGRect(x: video.minX + CGFloat(box.x) * video.width, y: video.minY + CGFloat(box.y) * video.height,
+                      width: CGFloat(box.w) * video.width, height: CGFloat(box.h) * video.height)
+    }
+}
