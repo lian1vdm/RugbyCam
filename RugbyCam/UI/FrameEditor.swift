@@ -12,8 +12,8 @@ struct FrameEditor: View {
     @Binding var frame: NBox?
 
     private enum Mode {
-        case create(start: CGPoint)
-        case move(original: NBox, start: CGPoint)
+        case create(start: NPoint)
+        case move(original: NBox, start: NPoint)
     }
 
     @State private var mode: Mode?

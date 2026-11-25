@@ -9,6 +9,7 @@ struct SettingsView: View {
             Form {
                 recordingSection
                 trackingSection
+                learnedSection
                 modelSection
                 trainingSection
                 mountSection
@@ -106,7 +107,6 @@ struct SettingsView: View {
         } footer: {
             Text("More looks per second and a higher ball search zoom find the ball better but make the phone warmer. If the mount swings back and forth, lower how eagerly it follows. Scrum, ruck or maul: zooms in on the pile and keeps some room around it. Lineout: medium. Kick: zooms out at once. Line break: a bit wider, with room in front of the runner.")
         }
-        learnedSection
     }
 
     private var learnedSection: some View {
