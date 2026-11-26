@@ -1,4 +1,5 @@
 import CoreGraphics
+import CoreImage
 import Foundation
 import Vision
 
@@ -19,8 +20,8 @@ enum PictureFramer {
                         completion: @escaping (PictureFraming) -> Void) {
         DispatchQueue.global(qos: .userInitiated).async {
             var players: [NBox] = []
-            if let image = TrainingStore.loadImage(at: imageURL, maxPixels: 1600) {
-                players = detectPeople(in: image)
+            if let image = TrainingStore.loadImage(at: imageURL, maxPixels: 1920) {
+                players = findPlayers(in: image)
             }
             let situation = FramingMath.stillSituation(players)
             let result = frame(players: players, ball: ball, situation: situation,
@@ -44,7 +45,14 @@ enum PictureFramer {
             fill = fill * (1.0 - memory.weight) + memory.fill * memory.weight
             offset = memory.offsetX * memory.weight
         }
-        if let action = result.action {
+        if players.count < 2 {
+            // Without players there is no real framing to suggest: show a half-wide frame.
+            if let centre = ball?.center ?? result.action?.center {
+                let size = 0.5
+                result.appFrame = NBox(x: Geo.clamp(centre.x - size / 2, 0, 1 - size),
+                                       y: Geo.clamp(centre.y - size / 2, 0, 1 - size), w: size, h: size)
+            }
+        } else if let action = result.action {
             result.appFrame = FramingMath.frame(around: action, fill: fill, offsetX: offset)
         }
         var features = FramingFeatures()
@@ -56,6 +64,45 @@ enum PictureFramer {
         features.ballSeen = ball != nil
         result.features = features
         return result
+    }
+
+    // The ball model, when it also knows players. Only used on `modelQueue`.
+    private static let modelQueue = DispatchQueue(label: "rugbycam.pictureframer")
+    private static var model: ObjectDetector?
+    private static var modelLoaded = false
+
+    /// Forget the loaded model, for example after a new model file was copied in.
+    static func reloadModel() {
+        modelQueue.async {
+            model = nil
+            modelLoaded = false
+        }
+    }
+
+    /// Players from the ball + player model when there is one, otherwise from iOS.
+    static func findPlayers(in image: CGImage) -> [NBox] {
+        return modelQueue.sync { () -> [NBox] in
+            if !modelLoaded {
+                modelLoaded = true
+                // A separate player model first, else the ball model if it also knows players.
+                if let playerModel = (try? ModelStore.find(names: ModelStore.playerNames)) ?? nil,
+                   let detector = try? ObjectDetector(model: playerModel, confidenceThreshold: 0.2, overlapThreshold: 0.45) {
+                    model = detector
+                } else if let ballModel = (try? ModelStore.find(names: ModelStore.ballNames)) ?? nil,
+                          let detector = try? ObjectDetector(model: ballModel, confidenceThreshold: 0.2, overlapThreshold: 0.45),
+                          detector.findsPlayers {
+                    model = detector
+                }
+            }
+            if let detector = model {
+                let picture = CIImage(cgImage: image)
+                if let found = try? detector.detect(in: picture, area: NBox.full) {
+                    let players = found.filter { $0.label.lowercased() != "ball" && $0.confidence >= 0.30 }.map { $0.box }
+                    return players
+                }
+            }
+            return detectPeople(in: image)
+        }
     }
 
     static func detectPeople(in image: CGImage) -> [NBox] {

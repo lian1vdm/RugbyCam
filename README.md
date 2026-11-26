@@ -80,6 +80,10 @@ The app cannot read `best.pt`. The model has to be converted once. The conversio
 
 Whenever you retrain, repeat this. The app does not need rebuilding.
 
+### Ball + player model
+
+The people detector built into iOS misses players far away. `tools/label_players.py` finds the players in all training pictures on the PC with the big `yolov8x.pt` model (whole picture plus four overlapping parts), writes them into the labels as class 1, and works out your framing examples again (`FramingLearned.json` in iCloud Drive). `train.py` then trains a model with two classes, ball and player. Convert it as above; the app sees that the model knows players and stops using the built-in detector. Copy `FramingLearned.json` into the same RugbyCam folder on the iPhone and tap *Look for model files again*.
+
 How fast your model runs on the phone is unknown until you try it. The top row shows the time per look. If it is slow, export a smaller picture size (`!python export_coreml.py best.pt 960`) or lower *Looks per second*.
 
 ---

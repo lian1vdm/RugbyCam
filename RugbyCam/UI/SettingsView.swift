@@ -160,7 +160,7 @@ struct SettingsView: View {
         } header: {
             Text("Models")
         } footer: {
-            Text("Convert your trained best.pt with tools/export_coreml.py, rename the result to BallDetector.mlpackage and copy it into Files > On My iPhone > RugbyCam. Then tap the button above.")
+            Text("Convert your trained best.pt with tools/export_coreml.py, rename the result to BallDetector.mlpackage and copy it into Files > On My iPhone > RugbyCam. A model trained on ball and players also replaces the built-in people detector. FramingLearned.json from the PC (label_players.py) goes into the same folder. Then tap the button above.")
         }
     }
 

@@ -107,6 +107,11 @@ final class TrackingEngine {
 
     // MARK: - Models
 
+    /// The player boxes of a ball + player model, without unsure ones.
+    static func players(in found: [DetectedObject]) -> [NBox] {
+        return found.filter { $0.label.lowercased() == "player" && $0.confidence >= 0.30 }.map { $0.box }
+    }
+
     /// Finds and loads the model files. The completion runs on the tracking queue.
     func loadModels(completion: @escaping (ModelReport) -> Void) {
         queue.async {
@@ -130,8 +135,10 @@ final class TrackingEngine {
                     let detector = try ObjectDetector(model: model, confidenceThreshold: 0.25, overlapThreshold: 0.45)
                     self.playerDetector = detector
                     report.players = "\(model.sourceName), \(detector.inputWidth)x\(detector.inputHeight)"
+                } else if self.ballDetector?.findsPlayers == true {
+                    report.players = "Your ball model also finds the players (ball + player model)."
                 } else {
-                    report.players = "Using the people detector built into iOS."
+                    report.players = "Using the people detector built into iOS (it misses far-away players). Train a ball + player model to fix this."
                 }
             } catch {
                 report.players = "Player model could not be loaded (\(error.localizedDescription)). Using the built-in people detector."
@@ -178,6 +185,7 @@ final class TrackingEngine {
         // ---- Ball ----
         var candidates: [BallObservation] = []
         var usedSmallArea = false
+        var playersFromBallLook: [NBox]?
         if let detector = ballDetector {
             var area = NBox.full
             if tracker.isTracking, areaMisses < 2, config.searchZoom > 1.01,
@@ -188,7 +196,12 @@ final class TrackingEngine {
             do {
                 let image = CIImage(cvPixelBuffer: pixelBuffer)
                 let found = try detector.detect(in: image, area: area)
-                candidates = found.map { BallObservation(box: $0.box, confidence: $0.confidence) }
+                candidates = found
+                    .filter { $0.label.lowercased() != "player" }
+                    .map { BallObservation(box: $0.box, confidence: $0.confidence) }
+                if detector.findsPlayers && !usedSmallArea {
+                    playersFromBallLook = TrackingEngine.players(in: found)
+                }
                 snapshot.searchArea = area
                 problem = nil
             } catch {
@@ -211,6 +224,12 @@ final class TrackingEngine {
                     let image = CIImage(cvPixelBuffer: pixelBuffer)
                     let found = try detector.detect(in: image, area: NBox.full)
                     cachedPlayers = found.filter { !$0.label.lowercased().contains("ball") }.map { $0.box }
+                } else if let fromBall = playersFromBallLook {
+                    // The ball model looked at the whole picture and found the players too.
+                    cachedPlayers = fromBall
+                } else if let detector = ballDetector, detector.findsPlayers {
+                    let image = CIImage(cvPixelBuffer: pixelBuffer)
+                    cachedPlayers = TrackingEngine.players(in: try detector.detect(in: image, area: NBox.full))
                 } else {
                     cachedPlayers = try humanDetector.detect(in: pixelBuffer)
                 }

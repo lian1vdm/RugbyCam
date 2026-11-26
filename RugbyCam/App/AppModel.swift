@@ -238,12 +238,31 @@ final class AppModel: ObservableObject, CameraEngineDelegate {
 
     func reloadModels() {
         ballModelStatus = "Loading"
+        PictureFramer.reloadModel()
+        importFramingFromPC()
         tracking.loadModels { [weak self] report in
             DispatchQueue.main.async {
                 self?.ballModelStatus = report.ball
                 self?.playerModelStatus = report.players
                 self?.hasBallModel = report.hasBallModel
             }
+        }
+    }
+
+    /// FramingLearned.json (from label_players.py on the PC), copied into Files > RugbyCam.
+    private func importFramingFromPC() {
+        let documents = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        let file = documents.appendingPathComponent("FramingLearned.json")
+        guard FileManager.default.fileExists(atPath: file.path) else { return }
+        objectWillChange.send()
+        if let note = framing.importLearned(from: file) {
+            let done = documents.appendingPathComponent("FramingLearned-imported.json")
+            try? FileManager.default.removeItem(at: done)
+            try? FileManager.default.moveItem(at: file, to: done)
+            pushTrackingConfig()
+            show(note)
+        } else {
+            show("FramingLearned.json could not be read.")
         }
     }
 

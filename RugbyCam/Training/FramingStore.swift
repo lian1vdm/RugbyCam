@@ -50,9 +50,9 @@ final class FramingStore: ObservableObject {
             }
         }
 
-        guard let action = example.action,
+        guard example.players.count >= 2, let action = example.action,
               let lesson = FramingMath.lesson(action: action, chosen: example.chosenFrame) else {
-            return "Saved. (No players were found, so the zoom could not learn from this one.)"
+            return "Saved. No players were found, so the zoom learns from this one later on the PC (label_players.py)."
         }
         var memory = learned[example.situation.rawValue] ?? LearnedFrame(fill: lesson.fill, offsetX: lesson.offsetX, count: 0)
         memory.count += 1
@@ -63,6 +63,20 @@ final class FramingStore: ObservableObject {
         learned[example.situation.rawValue] = memory
         saveLearned()
         return "Learned for \(example.situation.label.lowercased()) (\(memory.count) examples)."
+    }
+
+    /// Takes over what the PC worked out (FramingLearned.json from label_players.py).
+    /// Returns a short text, or nil when the file is not usable.
+    func importLearned(from url: URL) -> String? {
+        guard let data = try? Data(contentsOf: url),
+              let table = try? JSONDecoder().decode([String: LearnedFrame].self, from: data),
+              !table.isEmpty else {
+            return nil
+        }
+        learned = table.filter { PlaySituation(rawValue: $0.key) != nil }
+        saveLearned()
+        let count = learned.values.reduce(0) { $0 + $1.count }
+        return "Framing from the PC taken over: \(learned.count) situations, \(count) examples."
     }
 
     /// Forgets what was learned (the saved examples stay, for training on the PC).

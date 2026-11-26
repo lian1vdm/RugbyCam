@@ -29,6 +29,13 @@ final class ObjectDetector {
     let inputWidth: Int
     let inputHeight: Int
     let sourceName: String
+    /// The class names inside the model, for example ["ball", "player"].
+    let labels: [String]
+
+    /// True for a model trained on both the ball and the players.
+    var findsPlayers: Bool {
+        return labels.contains { $0.lowercased() == "player" }
+    }
 
     private let request: VNCoreMLRequest
 
@@ -57,6 +64,7 @@ final class ObjectDetector {
         inputWidth = width
         inputHeight = height
         sourceName = model.sourceName
+        labels = ObjectDetector.classLabels(of: mlModel)
 
         let visionModel = try VNCoreMLModel(for: mlModel)
         // YOLO exports with nms=True take their thresholds as extra inputs.
@@ -75,6 +83,28 @@ final class ObjectDetector {
         // The search area always has the model's own shape, so stretching to fill does not distort it.
         newRequest.imageCropAndScaleOption = .scaleFill
         request = newRequest
+    }
+
+    /// Reads the class names: from the model's labels, or from the "names" entry
+    /// that YOLO writes into the model's information ("{0: 'ball', 1: 'player'}").
+    private static func classLabels(of model: MLModel) -> [String] {
+        if let labels = model.modelDescription.classLabels as? [String], !labels.isEmpty {
+            return labels
+        }
+        let metadata = model.modelDescription.metadata
+        if let user = metadata[MLModelMetadataKey.creatorDefinedKey] as? [String: String], let names = user["names"] {
+            var found: [String] = []
+            var rest = Substring(names)
+            while let open = rest.firstIndex(where: { $0 == "'" || $0 == "\"" }) {
+                let quote = rest[open]
+                let after = rest.index(after: open)
+                guard let close = rest[after...].firstIndex(of: quote) else { break }
+                found.append(String(rest[after..<close]))
+                rest = rest[rest.index(after: close)...]
+            }
+            return found
+        }
+        return []
     }
 
     /// Looks for objects inside `area` (a part of the whole picture).
