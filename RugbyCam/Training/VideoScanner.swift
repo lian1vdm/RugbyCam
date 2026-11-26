@@ -90,7 +90,10 @@ final class VideoScanner {
                     return nil
                 }
                 let found = (try? detector.detect(in: CIImage(cgImage: frame), area: NBox.full)) ?? []
-                let best = found.max { $0.confidence < $1.confidence }
+                // A ball + player model also finds players; only a ball can be the guess.
+                let best = found
+                    .filter { $0.label.lowercased() != "player" }
+                    .max { $0.confidence < $1.confidence }
                 return Look(time: actual, box: best?.box, confidence: best?.confidence ?? 0.0)
             }
             if let look = look {
